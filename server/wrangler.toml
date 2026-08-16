@@ -1,0 +1,25 @@
+name = "lightchat"
+main = "src/index.ts"
+compatibility_date = "2025-08-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lightchat"
+database_id = "$D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "lightchat-media"
+
+[[durable_objects.bindings]]
+name = "CHAT_ROOM"
+class_name = "ChatRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ChatRoom"]
+
+[triggers]
+crons = ["0 3 * * *"]
