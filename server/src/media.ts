@@ -18,6 +18,20 @@ export async function uploadMedia(env: Env, userId: string, body: ArrayBuffer, c
   return { key, size, mime: contentType };
 }
 
+export async function canAccessMedia(env: Env, key: string, userId: string): Promise<boolean> {
+  const row = await env.DB.prepare(
+    `SELECT 1 FROM media m
+     WHERE m.key = ?
+       AND (m.owner_id = ?
+         OR EXISTS (
+           SELECT 1 FROM messages msg
+           JOIN conversation_members cm ON cm.conv_id = msg.conv_id
+           WHERE msg.media_key = m.key AND cm.user_id = ?
+         ))`
+  ).bind(key, userId, userId).first();
+  return Boolean(row);
+}
+
 export async function getMediaMeta(env: Env, key: string) {
   return await env.DB.prepare(`SELECT * FROM media WHERE key = ?`).bind(key).first();
 }

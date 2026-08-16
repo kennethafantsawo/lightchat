@@ -3,7 +3,7 @@ import { searchUser, sendFriendRequest, respondFriendRequest, dmId, myFriends, p
 import { ChatRoom } from "./ChatRoom";
 import { fetchMessages, fetchMessagesSince, markMessagesDelivered } from "./db";
 import { sendMessage, myConversations, canAccessConv } from "./messages";
-import { uploadMedia, readMedia, purgeExpired } from "./media";
+import { uploadMedia, readMedia, canAccessMedia, purgeExpired } from "./media";
 import type { User } from "./types";
 
 export interface Env {
@@ -133,10 +133,13 @@ export default {
 
     if (path === "/api/media" && req.method === "GET") {
       const key = url.searchParams.get("key") || "";
+      const can = await canAccessMedia(env, key, user.id);
+      if (!can) return json({ error: "Accès refusé." }, 403);
       const obj = await readMedia(env, key);
       if (!obj) return json({ error: "Média expiré ou introuvable." }, 410);
       const headers = new Headers(obj.httpMetadata?.contentType ? { "content-type": obj.httpMetadata.contentType } : {});
       headers.set("cache-control", "private, max-age=3600");
+      headers.set("x-content-type-options", "nosniff");
       return new Response(obj.body, { headers });
     }
 
