@@ -3,6 +3,7 @@ import { searchUser, sendFriendRequest, respondFriendRequest, dmId, myFriends, p
 import { ChatRoom } from "./ChatRoom";
 import { fetchMessages, fetchMessagesSince, markMessagesDelivered } from "./db";
 import { sendMessage, myConversations, canAccessConv } from "./messages";
+import { uploadMedia, readMedia, purgeExpired } from "./media";
 import type { User } from "./types";
 
 export interface Env {
@@ -122,7 +123,29 @@ export default {
       return json({ messages: list.reverse() });
     }
 
+    if (path === "/api/upload" && req.method === "POST") {
+      const contentType = req.headers.get("content-type") || "application/octet-stream";
+      const res = await uploadMedia(env, user.id, await req.arrayBuffer(), contentType, url.searchParams.get("filename") || undefined);
+      if (res.error) return json({ error: res.error }, 400);
+      // la collection de la référence médias dans le message : c'est l'app qui appelle /api/send juste après, avec media_key
+      return json(res);
+    }
+
+    if (path === "/api/media" && req.method === "GET") {
+      const key = url.searchParams.get("key") || "";
+      const obj = await readMedia(env, key);
+      if (!obj) return json({ error: "Média expiré ou introuvable." }, 410);
+      const headers = new Headers(obj.httpMetadata?.contentType ? { "content-type": obj.httpMetadata.contentType } : {});
+      headers.set("cache-control", "private, max-age=3600");
+      return new Response(obj.body, { headers });
+    }
+
     return json({ error: "Not found" }, 404);
+  },
+
+  async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    const deleted = await purgeExpired(env);
+    console.log(`[cron] media purgés : ${deleted}`);
   },
 };
 
