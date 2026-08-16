@@ -7,8 +7,7 @@ workers_dev = true
 [[d1_databases]]
 binding = "DB"
 database_name = "lightchat"
-# Must be manually replaced with the real D1 database UUID before remote migration/deploy.
-database_id = "$D1_DATABASE_ID"
+database_id = "33cbe608-36a0-4522-8c00-7bc5191c0278"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
