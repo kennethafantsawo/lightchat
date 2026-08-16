@@ -26,6 +26,15 @@ function getToken(req: Request): string {
   return h.replace("Bearer ", "").trim();
 }
 
+function pushToUser(env: Env, userId: string, payload: unknown) {
+  const globalId = env.CHAT_ROOM.idFromName("global");
+  const stub = env.CHAT_ROOM.get(globalId);
+  return stub.fetch("https://lightchat/-/push", {
+    method: "POST",
+    body: JSON.stringify({ userIds: [userId], payload }),
+  }).catch(() => {});
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
@@ -170,6 +179,51 @@ export default {
       const res = await removeGroupMember(env, String(b.group_id ?? ""), user.id, String(b.user_id ?? ""));
       if (res.error) return json({ error: res.error }, 400);
       return json(res);
+    }
+
+    if (path === "/api/call/request") {
+      const b = await readJson(req);
+      const to = String(b?.to_user_id ?? "");
+      if (!to) return json({ error: "Destinataire manquant." }, 400);
+      await pushToUser(env, to, {
+        type: "call_request",
+        from: { id: user.id, username: user.username, first_name: user.first_name, last_name: user.last_name },
+        call_type: b.call_type,
+        conv_id: b.conv_id,
+      });
+      return json({ ok: true });
+    }
+
+    if (path === "/api/call/accept") {
+      const b = await readJson(req);
+      const to = String(b?.to_user_id ?? "");
+      if (!to) return json({ error: "Destinataire manquant." }, 400);
+      await pushToUser(env, to, { type: "call_accept", from: user.id, call_type: b.call_type });
+      return json({ ok: true });
+    }
+
+    if (path === "/api/call/reject") {
+      const b = await readJson(req);
+      const to = String(b?.to_user_id ?? "");
+      if (!to) return json({ error: "Destinataire manquant." }, 400);
+      await pushToUser(env, to, { type: "call_reject", from: user.id });
+      return json({ ok: true });
+    }
+
+    if (path === "/api/call/webRtcSignal") {
+      const b = await readJson(req);
+      const to = String(b?.to_user_id ?? "");
+      if (!to) return json({ error: "Destinataire manquant." }, 400);
+      await pushToUser(env, to, { type: "call_signal", from: user.id, data: b.data });
+      return json({ ok: true });
+    }
+
+    if (path === "/api/call/hangup") {
+      const b = await readJson(req);
+      const to = String(b?.to_user_id ?? "");
+      if (!to) return json({ error: "Destinataire manquant." }, 400);
+      await pushToUser(env, to, { type: "call_hangup", from: user.id });
+      return json({ ok: true });
     }
 
     return json({ error: "Not found" }, 404);
