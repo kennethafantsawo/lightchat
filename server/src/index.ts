@@ -160,14 +160,14 @@ export default {
 
     if (path === "/api/groups/member" && req.method === "POST") {
       const b = await readJson(req);
-      const res = await addGroupMember(env, b.group_id, user.id, b.user_id);
+      const res = await addGroupMember(env, String(b.group_id ?? ""), user.id, String(b.user_id ?? ""));
       if (res.error) return json({ error: res.error }, 400);
       return json(res);
     }
 
     if (path === "/api/groups/member" && req.method === "DELETE") {
       const b = await readJson(req);
-      const res = await removeGroupMember(env, b.group_id, user.id, b.user_id);
+      const res = await removeGroupMember(env, String(b.group_id ?? ""), user.id, String(b.user_id ?? ""));
       if (res.error) return json({ error: res.error }, 400);
       return json(res);
     }

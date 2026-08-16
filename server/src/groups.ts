@@ -5,6 +5,12 @@ export async function createGroup(env: Env, ownerId: string, name: string, membe
   if (!name.trim()) return { error: "Nom vide." };
   const all = new Set([ownerId, ...memberIds]);
   if (all.size < 2) return { error: "Ajoute au moins un ami." };
+  const clean: string[] = [];
+  for (const uid of all) {
+    const exists = await env.DB.prepare(`SELECT id FROM users WHERE id = ?`).bind(uid).first();
+    if (exists) clean.push(uid);
+  }
+  if (clean.length < 2) return { error: "Ajoute au moins un ami existant." };
   const gid = makeId();
   const convId = "group:" + gid;
   const now = Date.now();
@@ -12,7 +18,7 @@ export async function createGroup(env: Env, ownerId: string, name: string, membe
     env.DB.prepare(`INSERT INTO conversations (id, kind, created_at) VALUES (?,?,?)`).bind(convId, "group", now),
     env.DB.prepare(`INSERT INTO groups (id, conv_id, name, owner_id, created_at) VALUES (?,?,?,?,?)`).bind(gid, convId, name.trim(), ownerId, now),
   ];
-  for (const uid of all) {
+  for (const uid of clean) {
     inserts.push(env.DB.prepare(
       `INSERT OR IGNORE INTO conversation_members (conv_id, user_id, role, added_by, created_at) VALUES (?,?,?,?,?)`
     ).bind(convId, uid, uid === ownerId ? "owner" : "member", ownerId, now));
@@ -25,6 +31,8 @@ export async function addGroupMember(env: Env, groupId: string, adderId: string,
   const g = await env.DB.prepare(`SELECT * FROM groups WHERE id = ?`).bind(groupId).first();
   if (!g) return { error: "Groupe introuvable." };
   if (g.owner_id !== adderId) return { error: "Seul l'auteur peut ajouter." };
+  const member = await env.DB.prepare(`SELECT id FROM users WHERE id = ?`).bind(newUserId).first();
+  if (!member) return { error: "Utilisateur introuvable." };
   await env.DB.prepare(
     `INSERT OR IGNORE INTO conversation_members (conv_id, user_id, role, added_by, created_at) VALUES (?,?,?,?,?)`
   ).bind(g.conv_id, newUserId, "member", adderId, Date.now()).run();
@@ -35,6 +43,7 @@ export async function removeGroupMember(env: Env, groupId: string, actorId: stri
   const g = await env.DB.prepare(`SELECT * FROM groups WHERE id = ?`).bind(groupId).first();
   if (!g) return { error: "Groupe introuvable." };
   if (g.owner_id !== actorId) return { error: "Non autorisé." };
+  if (targetUserId === g.owner_id) return { error: "Impossible de retirer l'auteur." };
   await env.DB.prepare(`DELETE FROM conversation_members WHERE conv_id = ? AND user_id = ?`).bind(g.conv_id, targetUserId).run();
   return { ok: true };
 }
@@ -44,7 +53,7 @@ export async function groupInfo(env: Env, userId: string, convId: string) {
   if (!g) return null;
   const members = await env.DB.prepare(
     `SELECT u.id, u.username, u.first_name, u.last_name, u.color, u.avatar_url, cm.role
-     FROM conversation_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conv_id = ?`
+     FROM conversation_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conv_id = ? ORDER BY CASE WHEN cm.role = 'owner' THEN 0 ELSE 1 END, cm.created_at`
   ).bind(convId).all();
   return { ...g, members: members.results };
 }
