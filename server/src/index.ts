@@ -4,6 +4,7 @@ import { ChatRoom } from "./ChatRoom";
 import { fetchMessages, fetchMessagesSince, markMessagesDelivered } from "./db";
 import { sendMessage, myConversations, canAccessConv } from "./messages";
 import { uploadMedia, readMedia, canAccessMedia, purgeExpired } from "./media";
+import { createGroup, addGroupMember, removeGroupMember, groupInfo } from "./groups";
 import type { User } from "./types";
 
 export interface Env {
@@ -141,6 +142,34 @@ export default {
       headers.set("cache-control", "private, max-age=3600");
       headers.set("x-content-type-options", "nosniff");
       return new Response(obj.body, { headers });
+    }
+
+    if (path === "/api/groups" && req.method === "POST") {
+      const b = await readJson(req);
+      const res = await createGroup(env, user.id, b.name || "", Array.isArray(b.member_ids) ? b.member_ids : []);
+      if (res.error) return json({ error: res.error }, 400);
+      return json(res);
+    }
+
+    if (path === "/api/groups" && req.method === "GET") {
+      const convId = url.searchParams.get("conv_id") || "";
+      const info = await groupInfo(env, user.id, convId);
+      if (!info) return json({ error: "Groupe introuvable." }, 404);
+      return json({ group: info });
+    }
+
+    if (path === "/api/groups/member" && req.method === "POST") {
+      const b = await readJson(req);
+      const res = await addGroupMember(env, b.group_id, user.id, b.user_id);
+      if (res.error) return json({ error: res.error }, 400);
+      return json(res);
+    }
+
+    if (path === "/api/groups/member" && req.method === "DELETE") {
+      const b = await readJson(req);
+      const res = await removeGroupMember(env, b.group_id, user.id, b.user_id);
+      if (res.error) return json({ error: res.error }, 400);
+      return json(res);
     }
 
     return json({ error: "Not found" }, 404);
