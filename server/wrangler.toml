@@ -1,6 +1,7 @@
 name = "lightchat"
 main = "src/index.ts"
 compatibility_date = "2025-08-01"
+compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
 [[d1_databases]]
