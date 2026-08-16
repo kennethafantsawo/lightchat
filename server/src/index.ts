@@ -63,14 +63,6 @@ export default {
       return stub.fetch(new Request(doUrl, req));
     }
 
-    // Expo Durable Object class
-    const idFromQuery = url.searchParams.get("_do");
-    if (idFromQuery) {
-      const id = env.CHAT_ROOM.idFromString(idFromQuery);
-      const stub = env.CHAT_ROOM.get(id);
-      return stub.fetch(req);
-    }
-
     const user = await getUserBySession(env, token);
     if (!user) return json({ error: "Non autorisé." }, 401);
 
