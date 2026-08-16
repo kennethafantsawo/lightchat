@@ -98,7 +98,7 @@ export default {
     if (path === "/api/send" && req.method === "POST") {
       const b = await readJson(req);
       const res = await sendMessage(env, user.id, b);
-      if (res.error) return json({ error: res.error }, 400);
+      if (res.error) return json({ error: res.error }, 403);
       return json(res);
     }
 
@@ -114,11 +114,11 @@ export default {
       if (!can) return json({ error: "Accès refusé." }, 403);
       if (since > 0) {
         const list = await fetchMessagesSince(env, convId, since);
-        await markMessagesDelivered(env, convId, Date.now());
+        await markMessagesDelivered(env, convId, Date.now(), user.id);
         return json({ messages: list });
       }
       const list = await fetchMessages(env, convId, beforeParam ? Number(beforeParam) : null);
-      await markMessagesDelivered(env, convId, Date.now());
+      await markMessagesDelivered(env, convId, Date.now(), user.id);
       return json({ messages: list.reverse() });
     }
 

@@ -17,23 +17,23 @@ export async function insertMessage(env: Env, m: Message) {
 export async function fetchMessages(env: Env, convId: string, before: number | null, limit = 50): Promise<Message[]> {
   const rows = before
     ? await env.DB.prepare(
-        `SELECT * FROM messages WHERE conv_id = ? AND created_at < ? ORDER BY created_at DESC LIMIT ?`
+        `SELECT * FROM messages WHERE conv_id = ? AND created_at < ? ORDER BY created_at DESC, id DESC LIMIT ?`
       ).bind(convId, before, limit).all()
     : await env.DB.prepare(
-        `SELECT * FROM messages WHERE conv_id = ? ORDER BY created_at DESC LIMIT ?`
+        `SELECT * FROM messages WHERE conv_id = ? ORDER BY created_at DESC, id DESC LIMIT ?`
       ).bind(convId, limit).all();
   return rows.results as unknown as Message[];
 }
 
 export async function fetchMessagesSince(env: Env, convId: string, since: number): Promise<Message[]> {
   const rows = await env.DB.prepare(
-    `SELECT * FROM messages WHERE conv_id = ? AND created_at > ? ORDER BY created_at ASC`
+    `SELECT * FROM messages WHERE conv_id = ? AND created_at > ? ORDER BY created_at ASC, id ASC`
   ).bind(convId, since).all();
   return rows.results as unknown as Message[];
 }
 
-export async function markMessagesDelivered(env: Env, convId: string, upTo: number) {
+export async function markMessagesDelivered(env: Env, convId: string, upTo: number, userId: string) {
   await env.DB.prepare(
-    `UPDATE messages SET status = 'delivered' WHERE conv_id = ? AND created_at <= ? AND status = 'sent'`
-  ).bind(convId, upTo).run();
+    `UPDATE messages SET status = 'delivered' WHERE conv_id = ? AND created_at <= ? AND status = 'sent' AND sender_id != ?`
+  ).bind(convId, upTo, userId).run();
 }

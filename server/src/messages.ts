@@ -8,16 +8,21 @@ export function canAccessConv(env: Env, convId: string, userId: string): Promise
     .bind(convId, userId).first().then(Boolean);
 }
 
+export const MESSAGE_TYPES: MessageType[] = ["text", "emoji", "sticker", "photo", "video", "audio", "system"];
+
 export async function sendMessage(env: Env, senderId: string, input: {
   conv_id: string; type?: string; body?: string; media_key?: string; mime?: string; duration_ms?: number;
 }) {
   const can = await canAccessConv(env, input.conv_id, senderId);
   if (!can) return { error: "Conversation inaccessible." };
+  const type = (input.type ?? "text") as MessageType;
+  if (!MESSAGE_TYPES.includes(type)) return { error: "Type de message invalide." };
+  if (type === "text" && !String(input.body ?? "").trim()) return { error: "Message vide." };
   const msg: Message = {
     id: makeId(),
     conv_id: input.conv_id,
     sender_id: senderId,
-    type: (input.type as MessageType) ?? "text",
+    type,
     body: input.body ?? null,
     media_key: input.media_key ?? null,
     mime: input.mime ?? null,
@@ -51,7 +56,8 @@ export async function myConversations(env: Env, userId: string) {
             (SELECT m.created_at FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_at,
             (SELECT m.type FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_type
      FROM conversation_members cm JOIN conversations c ON c.id = cm.conv_id
-     WHERE cm.user_id = ?`
+     WHERE cm.user_id = ?
+     ORDER BY COALESCE((SELECT m.created_at FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1), c.created_at) DESC`
   ).bind(userId).all();
   return rows.results;
 }
