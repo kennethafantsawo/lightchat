@@ -40,3 +40,26 @@ describe("friends & messages", () => {
     expect(msgs.json.messages.length).toBeGreaterThan(0);
   });
 });
+
+describe("friends regressions", () => {
+  it("rejette une seconde demande d'ami vers le même pseudo", async () => {
+    const a = await api("POST", "/api/auth/register", { username: "frguard_a", password: "123456", first_name: "A", last_name: "A", age: 22, gender: "other" });
+    const b = await api("POST", "/api/auth/register", { username: "frguard_b", password: "123456", first_name: "B", last_name: "B", age: 22, gender: "other" });
+    const tA = a.json.token as string;
+    const usernameB = b.json.user.username as string;
+
+    const first = await api("POST", "/api/friends/request", { username: usernameB }, tA);
+    expect(first.status).toBe(200);
+
+    const dup = await api("POST", "/api/friends/request", { username: usernameB }, tA);
+    expect(dup.status).toBe(400);
+    expect(dup.json.error).toBe("Demande déjà faite / déjà amis.");
+  });
+
+  it("refuse de répondre à une demande inexistante", async () => {
+    const b = await api("POST", "/api/auth/register", { username: "frguard_c", password: "123456", first_name: "C", last_name: "C", age: 22, gender: "other" });
+    const res = await api("POST", "/api/friends/respond", { user_id: "ffffffff-ffff-ffff-ffff-ffffffffffff", accept: true }, b.json.token as string);
+    expect(res.status).toBe(400);
+    expect(res.json.error).toBe("Aucune demande en attente.");
+  });
+});

@@ -24,4 +24,10 @@ describe("auth", () => {
     const r = await api("POST", "/api/auth/register", { username: "dup", password: "123456", first_name: "A", last_name: "B", age: 20, gender: "other" });
     expect(r.status).toBe(400);
   });
+
+  it("refuse /api/me sans token", async () => {
+    const r = await api("GET", "/api/me");
+    expect(r.status).toBe(401);
+    expect(r.json.error).toBe("Non autorisé.");
+  });
 });
