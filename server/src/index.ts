@@ -1,4 +1,5 @@
 import { createUser, createSession, getUserBySession, publicUser, verifyPassword } from "./auth";
+import { searchUser, sendFriendRequest, respondFriendRequest, dmId, myFriends, pendingInvites } from "./friends";
 import type { User } from "./types";
 
 export interface Env {
@@ -48,6 +49,35 @@ export default {
       const user = await getUserBySession(env, token);
       if (!user) return json({ error: "Non autorisé." }, 401);
       return json({ user: publicUser(user, true) });
+    }
+
+    const user = await getUserBySession(env, token);
+    if (!user) return json({ error: "Non autorisé." }, 401);
+
+    if (path === "/api/users/search" && req.method === "GET") {
+      const q = url.searchParams.get("q") || "";
+      return json({ results: await searchUser(env, user.id, q) });
+    }
+
+    if (path === "/api/friends/request" && req.method === "POST") {
+      const b = await readJson(req);
+      const res = await sendFriendRequest(env, user.id, b.username);
+      if (res.error) return json({ error: res.error }, 400);
+      return json(res);
+    }
+
+    if (path === "/api/friends/respond" && req.method === "POST") {
+      const b = await readJson(req);
+      const res = await respondFriendRequest(env, user.id, b.user_id, Boolean(b.accept));
+      return json(res);
+    }
+
+    if (path === "/api/friends" && req.method === "GET") {
+      return json({ friends: await myFriends(env, user.id) });
+    }
+
+    if (path === "/api/friends/pending" && req.method === "GET") {
+      return json({ pending: await pendingInvites(env, user.id) });
     }
 
     return json({ error: "Not found" }, 404);
