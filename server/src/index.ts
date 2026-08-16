@@ -1,6 +1,8 @@
 import { createUser, createSession, getUserBySession, publicUser, verifyPassword } from "./auth";
 import { searchUser, sendFriendRequest, respondFriendRequest, dmId, myFriends, pendingInvites } from "./friends";
 import { ChatRoom } from "./ChatRoom";
+import { fetchMessages, fetchMessagesSince, markMessagesDelivered } from "./db";
+import { sendMessage, myConversations, canAccessConv } from "./messages";
 import type { User } from "./types";
 
 export interface Env {
@@ -91,6 +93,33 @@ export default {
 
     if (path === "/api/friends/pending" && req.method === "GET") {
       return json({ pending: await pendingInvites(env, user.id) });
+    }
+
+    if (path === "/api/send" && req.method === "POST") {
+      const b = await readJson(req);
+      const res = await sendMessage(env, user.id, b);
+      if (res.error) return json({ error: res.error }, 400);
+      return json(res);
+    }
+
+    if (path === "/api/conversations" && req.method === "GET") {
+      return json({ conversations: await myConversations(env, user.id) });
+    }
+
+    if (path === "/api/messages" && req.method === "GET") {
+      const convId = url.searchParams.get("conv_id") || "";
+      const beforeParam = url.searchParams.get("before");
+      const since = Number(url.searchParams.get("since") || 0);
+      const can = await canAccessConv(env, convId, user.id);
+      if (!can) return json({ error: "Accès refusé." }, 403);
+      if (since > 0) {
+        const list = await fetchMessagesSince(env, convId, since);
+        await markMessagesDelivered(env, convId, Date.now());
+        return json({ messages: list });
+      }
+      const list = await fetchMessages(env, convId, beforeParam ? Number(beforeParam) : null);
+      await markMessagesDelivered(env, convId, Date.now());
+      return json({ messages: list.reverse() });
     }
 
     return json({ error: "Not found" }, 404);
