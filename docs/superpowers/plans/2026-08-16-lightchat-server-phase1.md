@@ -684,15 +684,18 @@ git commit -m "feat(server): friend requests search invite accept"
 
 - [ ] **Step 1 : Créer `src/ChatRoom.ts`**
 
+> **Corrections de conception (revue qualité) :**
+> 1. Le ChatRoom est un hub global partagé. La diffusion ne doit PAS envoyer chaque payload à tous les utilisateurs connectés — le `/push` reçoit la liste explicite des utilisateurs destinataires (`userIds`) et le DO ne délivre qu'à leurs sockets.
+> 2. Chaque utilisateur peut avoir plusieurs appareils (plusieurs sockets) ; seul le plus récent est retenu dans la map.
+> 3. `webSocketClose` ne doit retirer QUE la socket fermée (comparaison par identité), jamais toutes celles de l'utilisateur.
+
 ```ts
 import { getUserBySession } from "./auth";
 
 export class ChatRoom {
   state: DurableObjectState;
   env: Env;
-  sockets: Map<string, WebSocket> = new Map();
-  userIds: Map<WebSocket, string> = new Map();
-  userId: string | null = null;
+  sockets: Map<string, WebSocket> = new Map(); // userId -> socket la plus récente
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
@@ -701,15 +704,22 @@ export class ChatRoom {
 
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url);
-    if (url.pathname === "/connect") {
+    if (url.pathname === "/connect" || url.pathname === "/-/connect") {
       const pairs = new WebSocketPair();
       const server = pairs[1];
       this.state.acceptWebSocket(server);
       return new Response(null, { status: 101, webSocket: pairs[0] });
     }
-    if (url.pathname === "/push" && req.method === "POST") {
-      const payload = await req.json();
-      await this.broadcast(payload);
+    if ((url.pathname === "/push" || url.pathname === "/-/push") && req.method === "POST") {
+      // body JSON: { userIds: string[], payload: unknown }
+      let data: any;
+      try { data = await req.json(); } catch { return new Response("bad json", { status: 400 }); }
+      const userIds = new Set(Array.isArray(data.userIds) ? data.userIds : []);
+      for (const [uid, ws] of this.sockets) {
+        if (userIds.has(uid) && ws.readyState === WebSocket.OPEN) {
+          try { ws.send(JSON.stringify(data.payload)); } catch {}
+        }
+      }
       return new Response("ok");
     }
     return new Response("not found", { status: 404 });
@@ -722,23 +732,15 @@ export class ChatRoom {
       // { type: 'hello', token }
       const user = await getUserBySession(this.env, data.token);
       if (!user) { ws.close(4001, "unauthorized"); return; }
-      this.userId = user.id;
-      this.userIds.set(ws, user.id);
       this.sockets.set(user.id, ws);
       ws.send(JSON.stringify({ type: "ready", userId: user.id }));
     }
-    if (data.type === "pong") { /* keepalive */ }
   }
 
   async webSocketClose(ws: WebSocket) {
-    const uid = this.userIds.get(ws);
-    this.sockets.delete(uid as string);
-    this.userIds.delete(ws);
-  }
-
-  async broadcast(payload: unknown) {
-    for (const [uid, ws] of this.sockets) {
-      if (ws.readyState === 1) ws.send(JSON.stringify(payload));
+    // Retire uniquement la socket fermée (pas les autres appareils du même utilisateur)
+    for (const [uid, s] of this.sockets) {
+      if (s === ws) this.sockets.delete(uid);
     }
   }
 }
@@ -752,20 +754,17 @@ type Env = {
 
 - [ ] **Step 2 : Brancher la route WebSocket dans `index.ts`**
 
+> **Correction (revue qualité) :** l'appel au stub doit reprendre la requête d'origine (`new Request(doUrl, req)`) pour conserver l'en-tête `Upgrade: websocket` — un `stub.fetch("https://lightchat/-/connect")` nu échoue. **NE PAS ajouter de passerelle `_do`** : elle exposerait `/push` sans authentification. Les push internes (Task 7) passent par `env.CHAT_ROOM.get(id).fetch(...)` depuis le worker lui-même.
+
 Ajouter dans le `fetch`, avant le retour 404 :
 ```ts
     if (path === "/api/ws" && req.method === "GET") {
       const id = env.CHAT_ROOM.idFromName("global");
       const stub = env.CHAT_ROOM.get(id);
-      return stub.fetch("https://lightchat/-/connect");
-    }
-
-    // Expo Durable Object class
-    const idFromQuery = url.searchParams.get("_do");
-    if (idFromQuery) {
-      const id = env.CHAT_ROOM.idFromString(idFromQuery);
-      const stub = env.CHAT_ROOM.get(id);
-      return stub.fetch(req);
+      const doUrl = new URL(req.url);
+      doUrl.pathname = "/-/connect";
+      doUrl.search = "";
+      return stub.fetch(new Request(doUrl, req));
     }
 ```
 
@@ -777,7 +776,7 @@ export { ChatRoom };
 - [ ] **Step 3 : Test temps réel** (2 onglets) — `wrangler dev`
 - Onglet 1 : `ws://localhost:8787/api/ws`, envoyer `{"type":"hello","token":"<TOKEN_A>"}` → reçoit `{"type":"ready",...}`
 - Onglet 2 : même avec TOKEN_B.
-- Depuis l'onglet A, `curl -X POST http://localhost:8787/api/ws?_do=<id global>` non testable aisément ici — on validera la livraison dans la Task 7 via le flux complet.
+- Test du filtre `userIds` : utiliser au besoin une route temporaire `POST /api/_push_test` (appelant `stub.fetch(.../-/push)` avec `{userIds, payload}`) à retirer avant le commit, ou valider la livraison dans la Task 7 via le flux complet.
 
 - [ ] **Step 4 : Commit**
 
@@ -832,15 +831,16 @@ export async function sendMessage(env: Env, senderId: string, input: {
 
 async function pushToConv(env: Env, convId: string, payload: unknown) {
   const members = await env.DB.prepare(`SELECT user_id FROM conversation_members WHERE conv_id = ?`).bind(convId).all();
-  const stubs = new Set<DurableObjectStub>();
+  const userIds = (members.results as any[]).map((m) => m.user_id);
   const globalId = env.CHAT_ROOM.idFromName("global");
   const globalStub = env.CHAT_ROOM.get(globalId);
-  for (const m of members.results as any[]) {
-    stubs.add(globalStub);
-  }
-  for (const s of stubs) {
-    try { await s.fetch("https://lightchat/-/push", { method: "POST", body: JSON.stringify(payload) }); } catch {}
-  }
+  // Contrat DO (Task 6) : { userIds, payload } — le DO filtre les destinataires.
+  try {
+    await globalStub.fetch("https://lightchat/-/push", {
+      method: "POST",
+      body: JSON.stringify({ userIds, payload }),
+    });
+  } catch {}
 }
 
 export async function myConversations(env: Env, userId: string) {
@@ -1095,7 +1095,15 @@ Routes :
 
     if (path === "/api/groups/member" && req.method === "DELETE") {
       const b = await readJson(req);
-      const res = await removeGroupMember(env, user.id, b.group_id, b.user_id);
+      // Ordre des arguments : (env, groupId, actorId, targetUserId) — NE PAS permuter.
+      const res = await removeGroupMember(env, b.group_id, user.id, b.user_id);
+      if (res.error) return json({ error: res.error }, 400);
+      return json(res);
+    }
+
+    if (path === "/api/groups/member" && req.method === "POST") {
+      const b = await readJson(req);
+      const res = await addGroupMember(env, b.group_id, user.id, b.user_id);
       if (res.error) return json({ error: res.error }, 400);
       return json(res);
     }
@@ -1131,7 +1139,8 @@ Dans `index.ts`, utiliser la DO pour relayer les messages de signalisation (offe
 function pushToUser(env: Env, userId: string, payload: unknown) {
   const globalId = env.CHAT_ROOM.idFromName("global");
   const stub = env.CHAT_ROOM.get(globalId);
-  return stub.fetch("https://lightchat/-/push", { method: "POST", body: JSON.stringify(payload) }).catch(() => {});
+  // Contrat DO (Task 6) : { userIds, payload } — le DO filtre les destinataires.
+  return stub.fetch("https://lightchat/-/push", { method: "POST", body: JSON.stringify({ userIds: [userId], payload }) }).catch(() => {});
 }
 
 const CALL_ROUTES: Record<string, string> = {
