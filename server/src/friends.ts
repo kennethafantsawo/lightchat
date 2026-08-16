@@ -27,6 +27,10 @@ export async function sendFriendRequest(env: Env, meId: string, targetUsername: 
 }
 
 export async function respondFriendRequest(env: Env, meId: string, requesterId: string, accept: boolean) {
+  const pending = await env.DB.prepare(
+    `SELECT * FROM friendships WHERE user_id = ? AND friend_id = ? AND status = 'pending'`
+  ).bind(meId, requesterId).first();
+  if (!pending) return { error: "Aucune demande en attente." };
   const now = Date.now();
   await env.DB.batch([
     env.DB.prepare(`UPDATE friendships SET status = ?, updated_at = ? WHERE user_id = ? AND friend_id = ?`)

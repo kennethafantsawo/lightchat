@@ -69,6 +69,7 @@ export default {
     if (path === "/api/friends/respond" && req.method === "POST") {
       const b = await readJson(req);
       const res = await respondFriendRequest(env, user.id, b.user_id, Boolean(b.accept));
+      if (res.error) return json({ error: res.error }, 400);
       return json(res);
     }
 
@@ -83,3 +84,4 @@ export default {
     return json({ error: "Not found" }, 404);
   },
 };
+
