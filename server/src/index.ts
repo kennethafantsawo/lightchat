@@ -1,5 +1,6 @@
 import { createUser, createSession, getUserBySession, publicUser, verifyPassword } from "./auth";
 import { searchUser, sendFriendRequest, respondFriendRequest, dmId, myFriends, pendingInvites } from "./friends";
+import { ChatRoom } from "./ChatRoom";
 import type { User } from "./types";
 
 export interface Env {
@@ -51,6 +52,25 @@ export default {
       return json({ user: publicUser(user, true) });
     }
 
+    if (path === "/api/ws" && req.method === "GET") {
+      const id = env.CHAT_ROOM.idFromName("global");
+      const stub = env.CHAT_ROOM.get(id);
+      // Forward the original upgrade request so the DO can answer with a WebSocket;
+      // only the path is rewritten to the DO's internal endpoint.
+      const doUrl = new URL(req.url);
+      doUrl.pathname = "/-/connect";
+      doUrl.search = "";
+      return stub.fetch(new Request(doUrl, req));
+    }
+
+    // Expo Durable Object class
+    const idFromQuery = url.searchParams.get("_do");
+    if (idFromQuery) {
+      const id = env.CHAT_ROOM.idFromString(idFromQuery);
+      const stub = env.CHAT_ROOM.get(id);
+      return stub.fetch(req);
+    }
+
     const user = await getUserBySession(env, token);
     if (!user) return json({ error: "Non autorisé." }, 401);
 
@@ -84,4 +104,6 @@ export default {
     return json({ error: "Not found" }, 404);
   },
 };
+
+export { ChatRoom };
 
