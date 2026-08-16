@@ -1,6 +1,6 @@
 import { createHash, randomUUID, randomBytes } from "node:crypto";
 import type { Env } from "./index";
-import type { User } from "./types";
+import type { PublicUser, User } from "./types";
 
 function toHex(bytes: Uint8Array): string {
   const out: string[] = [];
@@ -20,37 +20,61 @@ export function makeId(): string {
   return randomUUID();
 }
 
-export function publicUser(u: User, self = false): Omit<User, "password_hash"> {
-  const { password_hash, ...rest } = u;
-  return { ...rest };
+export function publicUser(u: User, self = false): PublicUser {
+  const base: PublicUser = {
+    id: u.id,
+    username: u.username,
+    first_name: u.first_name,
+    last_name: u.last_name,
+    avatar_url: u.avatar_url,
+    color: u.color,
+    created_at: u.created_at,
+  };
+  if (self) {
+    base.email = u.email ?? undefined;
+    base.phone = u.phone ?? undefined;
+    base.age = u.age;
+    base.gender = u.gender;
+    base.is_self = true;
+  }
+  return base;
 }
 
 export async function createUser(env: Env, input: {
   username: string; password: string; first_name: string; last_name: string;
   age: number; gender: string; email?: string; phone?: string;
 }): Promise<{ error?: string; user?: User }> {
-  const username = input.username.trim().toLowerCase();
+  const username = String(input.username ?? "").trim().toLowerCase();
   if (!/^[a-z0-9._]{3,20}$/.test(username)) {
     return { error: "Pseudo invalide : 3-20 caractères (lettres, chiffres, point, _ sans majuscules)." };
   }
-  if (input.password.length < 6) return { error: "Mot de passe trop court (6+)." };
+  const password = String(input.password ?? "");
+  if (password.length < 6) return { error: "Mot de passe trop court (6+)." };
+  const age = Number(input.age);
+  if (!Number.isInteger(age) || age < 13 || age > 120) return { error: "Âge invalide." };
+  const gender = String(input.gender ?? "");
+  if (!["male", "female", "other"].includes(gender)) return { error: "Sexe invalide." };
   const existing = await env.DB.prepare(`SELECT id FROM users WHERE username = ?`).bind(username).first();
   if (existing) return { error: "Ce pseudo est déjà pris." };
   const salt = newSalt();
   const id = makeId();
   const created_at = Date.now();
   const user: User = {
-    id, username, password_hash: hashPassword(input.password, salt) + ":" + salt,
+    id, username, password_hash: hashPassword(password, salt) + ":" + salt,
     first_name: input.first_name, last_name: input.last_name,
-    age: input.age, gender: input.gender,
+    age, gender,
     email: input.email ?? null, phone: input.phone ?? null,
     avatar_url: null, color: "indigo", created_at,
   };
-  await env.DB.prepare(
-    `INSERT INTO users (id, username, password_hash, first_name, last_name, age, gender, email, phone, avatar_url, color, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(user.id, user.username, user.password_hash, user.first_name, user.last_name,
-    user.age, user.gender, user.email, user.phone, user.avatar_url, user.color, user.created_at).run();
+  try {
+    await env.DB.prepare(
+      `INSERT INTO users (id, username, password_hash, first_name, last_name, age, gender, email, phone, avatar_url, color, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(user.id, user.username, user.password_hash, user.first_name, user.last_name,
+      user.age, user.gender, user.email, user.phone, user.avatar_url, user.color, user.created_at).run();
+  } catch {
+    return { error: "Ce pseudo est déjà pris." };
+  }
   return { user };
 }
 
