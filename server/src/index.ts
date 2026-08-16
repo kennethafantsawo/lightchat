@@ -35,6 +35,14 @@ function pushToUser(env: Env, userId: string, payload: unknown) {
   }).catch(() => {});
 }
 
+async function callAllowed(env: Env, fromId: string, toId: string): Promise<boolean> {
+  if (fromId === toId) return false;
+  const row = await env.DB.prepare(
+    `SELECT * FROM friendships WHERE user_id = ? AND friend_id = ? AND status = 'accepted'`
+  ).bind(fromId, toId).first();
+  return Boolean(row);
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
@@ -181,10 +189,11 @@ export default {
       return json(res);
     }
 
-    if (path === "/api/call/request") {
+    if (path === "/api/call/request" && req.method === "POST") {
       const b = await readJson(req);
       const to = String(b?.to_user_id ?? "");
       if (!to) return json({ error: "Destinataire manquant." }, 400);
+      if (!(await callAllowed(env, user.id, to))) return json({ error: "Non autorisé." }, 403);
       await pushToUser(env, to, {
         type: "call_request",
         from: { id: user.id, username: user.username, first_name: user.first_name, last_name: user.last_name },
@@ -194,35 +203,55 @@ export default {
       return json({ ok: true });
     }
 
-    if (path === "/api/call/accept") {
+    if (path === "/api/call/accept" && req.method === "POST") {
       const b = await readJson(req);
       const to = String(b?.to_user_id ?? "");
       if (!to) return json({ error: "Destinataire manquant." }, 400);
-      await pushToUser(env, to, { type: "call_accept", from: user.id, call_type: b.call_type });
+      if (!(await callAllowed(env, user.id, to))) return json({ error: "Non autorisé." }, 403);
+      await pushToUser(env, to, {
+        type: "call_accept",
+        from: { id: user.id, username: user.username, first_name: user.first_name, last_name: user.last_name },
+        call_type: b.call_type,
+      });
       return json({ ok: true });
     }
 
-    if (path === "/api/call/reject") {
+    if (path === "/api/call/reject" && req.method === "POST") {
       const b = await readJson(req);
       const to = String(b?.to_user_id ?? "");
       if (!to) return json({ error: "Destinataire manquant." }, 400);
-      await pushToUser(env, to, { type: "call_reject", from: user.id });
+      if (!(await callAllowed(env, user.id, to))) return json({ error: "Non autorisé." }, 403);
+      await pushToUser(env, to, {
+        type: "call_reject",
+        from: { id: user.id, username: user.username, first_name: user.first_name, last_name: user.last_name },
+      });
       return json({ ok: true });
     }
 
-    if (path === "/api/call/webRtcSignal") {
+    if (path === "/api/call/webRtcSignal" && req.method === "POST") {
       const b = await readJson(req);
       const to = String(b?.to_user_id ?? "");
       if (!to) return json({ error: "Destinataire manquant." }, 400);
-      await pushToUser(env, to, { type: "call_signal", from: user.id, data: b.data });
+      if (!(await callAllowed(env, user.id, to))) return json({ error: "Non autorisé." }, 403);
+      const raw = JSON.stringify(b.data ?? null);
+      if (raw.length > 65536) return json({ error: "Données trop volumineuses." }, 400);
+      await pushToUser(env, to, {
+        type: "call_signal",
+        from: { id: user.id, username: user.username, first_name: user.first_name, last_name: user.last_name },
+        data: b.data,
+      });
       return json({ ok: true });
     }
 
-    if (path === "/api/call/hangup") {
+    if (path === "/api/call/hangup" && req.method === "POST") {
       const b = await readJson(req);
       const to = String(b?.to_user_id ?? "");
       if (!to) return json({ error: "Destinataire manquant." }, 400);
-      await pushToUser(env, to, { type: "call_hangup", from: user.id });
+      if (!(await callAllowed(env, user.id, to))) return json({ error: "Non autorisé." }, 403);
+      await pushToUser(env, to, {
+        type: "call_hangup",
+        from: { id: user.id, username: user.username, first_name: user.first_name, last_name: user.last_name },
+      });
       return json({ ok: true });
     }
 
