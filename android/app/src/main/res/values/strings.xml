@@ -29,6 +29,49 @@
     <string name="send">Envoyer</string>
     <string name="send_error">Échec de l\'envoi.</string>
 
+    <string name="btn_plus">+</string>
+    <string name="btn_emoji">☺</string>
+    <string name="btn_mic">Enr</string>
+    <string name="rec_stop">Stop</string>
+    <string name="send_photo_error">Envoi du média impossible.</string>
+    <string name="media_err">Média indisponible.</string>
+    <string name="media_photo">Photo</string>
+    <string name="media_video">Vidéo</string>
+    <string name="media_choose">Choisir</string>
+
+    <string-array name="emoji_list">
+        <item>😀</item>
+        <item>😁</item>
+        <item>😂</item>
+        <item>🤣</item>
+        <item>😊</item>
+        <item>😍</item>
+        <item>🥰</item>
+        <item>😘</item>
+        <item>😎</item>
+        <item>🤔</item>
+        <item>🙂</item>
+        <item>😉</item>
+        <item>😅</item>
+        <item>😭</item>
+        <item>😢</item>
+        <item>😡</item>
+        <item>😱</item>
+        <item>🤗</item>
+        <item>😉</item>
+        <item>😜</item>
+        <item>🤪</item>
+        <item>😴</item>
+        <item>🤒</item>
+        <item>🤕</item>
+        <item>❤️</item>
+        <item>👍</item>
+        <item>👎</item>
+        <item>🙏</item>
+        <item>👌</item>
+        <item>🔥</item>
+    </string-array>
+
     <string name="header_pending">Demandes en attente</string>
     <string name="header_friends">Amis</string>
     <string name="pending_empty">Aucune demande en attente.</string>
