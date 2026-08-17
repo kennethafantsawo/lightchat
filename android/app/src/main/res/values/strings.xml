@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LightChat</string>
+
     <string name="switch_to_register">Créer un compte</string>
     <string name="switch_to_login">Se connecter</string>
     <string name="status_login">Connexion…</string>
@@ -13,8 +14,6 @@
     <string name="friends_label">Amis</string>
     <string name="search_label">Recherche</string>
     <string name="settings_label">Paramètres</string>
-    <string name="friend_placeholder">Tes amis apparaîtront ici.</string>
-    <string name="search_placeholder">Recherche d\'amis par pseudo.</string>
     <string name="settings_placeholder">Paramètres (disponible en Phase 6).</string>
 
     <string name="conv_empty">Aucune conversation pour l\'instant.</string>
@@ -29,4 +28,23 @@
     <string name="msg_error">Impossible de charger les messages.</string>
     <string name="send">Envoyer</string>
     <string name="send_error">Échec de l\'envoi.</string>
+
+    <string name="header_pending">Demandes en attente</string>
+    <string name="header_friends">Amis</string>
+    <string name="pending_empty">Aucune demande en attente.</string>
+    <string name="friends_empty">Aucun ami pour l\'instant.</string>
+
+    <string name="search_hint">Rechercher un pseudo…</string>
+    <string name="btn_search">Rechercher</string>
+    <string name="search_prompt">Recherche d\'amis par pseudo.</string>
+    <string name="status_searching">Recherche…</string>
+    <string name="status_search_err">Recherche impossible.</string>
+    <string name="status_invite_err">Envoi de l\'invitation impossible.</string>
+
+    <string name="btn_invite">Inviter</string>
+    <string name="btn_invited">Envoyé</string>
+    <string name="already_friends">Déjà amis</string>
+    <string name="btn_accept">Accepter</string>
+    <string name="btn_decline">Refuser</string>
+    <string name="btn_talk">Parler</string>
 </resources>
