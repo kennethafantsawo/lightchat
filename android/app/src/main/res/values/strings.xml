@@ -90,4 +90,14 @@
     <string name="btn_accept">Accepter</string>
     <string name="btn_decline">Refuser</string>
     <string name="btn_talk">Parler</string>
+
+    <string name="notif_new">Nouveau message</string>
+    <string name="notif_photo">Photo</string>
+    <string name="notif_video">Vidéo</string>
+    <string name="notif_audio">Message vocal</string>
+    <string name="notif_sticker">Sticker</string>
+    <string name="notif_service">LightChat actif</string>
+    <string name="notif_service_text">Réception des messages en cours.</string>
+    <string name="notif_channel_messages">Messages</string>
+    <string name="notif_channel_service">Service</string>
 </resources>

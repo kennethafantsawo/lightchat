@@ -2,8 +2,11 @@ package com.lightchat.ui;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -20,6 +23,7 @@ import android.widget.TextView;
 import com.lightchat.R;
 import com.lightchat.SessionStore;
 import com.lightchat.net.Realtime;
+import com.lightchat.net.RealtimeService;
 import com.lightchat.models.Conversation;
 import com.lightchat.net.ApiClient;
 import com.lightchat.util.Async;
@@ -60,6 +64,9 @@ public class ConversationsActivity extends Activity {
     private TextView searchStatus;
 
     private View placeholder;
+
+    private static final int REQ_NOTIF = 2001;
+    private static boolean notifAsked = false;
 
     private final Realtime.Listener rt = new Realtime.Listener() {
         @Override public void onMessage(String json) { reload(); }
@@ -116,6 +123,7 @@ public class ConversationsActivity extends Activity {
 
         findViewById(R.id.txt_logout).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
+                RealtimeService.stop(ConversationsActivity.this);
                 Realtime.get().stop();
                 session.clear();
                 startActivity(new Intent(ConversationsActivity.this, LoginActivity.class));
@@ -125,6 +133,28 @@ public class ConversationsActivity extends Activity {
 
         showTab(chatFrame);
         setNavSelection(findViewById(R.id.tab_chats));
+
+        RealtimeService.start(this);
+        maybeRequestNotifyPermission();
+    }
+
+    private void maybeRequestNotifyPermission() {
+        if (notifAsked) return;
+        notifAsked = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIF);
+        }
+    }
+
+    private void cacheTitles() {
+        SharedPreferences sp = getSharedPreferences("lc_convs", MODE_PRIVATE);
+        SharedPreferences.Editor e = sp.edit();
+        for (Conversation c : items) {
+            e.putString(c.convId, titleFor(c));
+        }
+        e.apply();
     }
 
     private void showTab(View target) {
@@ -239,6 +269,7 @@ public class ConversationsActivity extends Activity {
                 if (ok != null && ok) {
                     status.setVisibility(View.GONE);
                     adapter.notifyDataSetChanged();
+                    cacheTitles();
                     if (searchAdapter != null) searchAdapter.notifyDataSetChanged();
                 } else {
                     status.setText(R.string.conv_error);
