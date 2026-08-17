@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LightChat</string>
+    <string name="switch_to_register">Créer un compte</string>
+    <string name="switch_to_login">Se connecter</string>
+    <string name="status_login">Connexion…</string>
+    <string name="status_register">Création du compte…</string>
+    <string name="status_missing">Renseigne pseudo et mot de passe.</string>
+    <string name="status_missing_register">Renseigne tous les champs.</string>
+    <string name="status_invalid_age">Âge invalide.</string>
 </resources>
