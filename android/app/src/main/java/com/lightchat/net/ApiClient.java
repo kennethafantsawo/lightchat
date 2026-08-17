@@ -1,6 +1,7 @@
 package com.lightchat.net;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -45,6 +46,54 @@ public final class ApiClient {
             InputStream is = status >= 400 ? conn.getErrorStream() : conn.getInputStream();
             String body = is == null ? "" : readAll(is);
             return new ApiResponse(status, body);
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    public static ApiResponse upload(String path, byte[] data, String mime, String token)
+            throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) new URL(Endpoints.url(path)).openConnection();
+        try {
+            conn.setConnectTimeout(TIMEOUT_MS);
+            conn.setReadTimeout(TIMEOUT_MS);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("Content-Type", mime);
+            if (token != null) {
+                conn.setRequestProperty("Authorization", Endpoints.authHeader(token));
+            }
+            conn.setDoOutput(true);
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(data);
+            }
+            int status = conn.getResponseCode();
+            InputStream is = status >= 400 ? conn.getErrorStream() : conn.getInputStream();
+            String body = is == null ? "" : readAll(is);
+            return new ApiResponse(status, body);
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    public static byte[] download(String path, String token) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) new URL(Endpoints.url(path)).openConnection();
+        try {
+            conn.setConnectTimeout(TIMEOUT_MS);
+            conn.setReadTimeout(TIMEOUT_MS);
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/octet-stream");
+            if (token != null) {
+                conn.setRequestProperty("Authorization", Endpoints.authHeader(token));
+            }
+            if (conn.getResponseCode() != 200) return null;
+            try (InputStream is = conn.getInputStream()) {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                byte[] buf = new byte[8192];
+                int r;
+                while ((r = is.read(buf)) != -1) bos.write(buf, 0, r);
+                return bos.toByteArray();
+            }
         } finally {
             conn.disconnect();
         }
