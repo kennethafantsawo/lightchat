@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,7 +30,11 @@ import com.lightchat.net.ApiClient;
 import com.lightchat.util.Async;
 import com.lightchat.util.Fmt;
 import com.lightchat.util.Json;
+import com.lightchat.util.MediaStore;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,7 +71,11 @@ public class ConversationsActivity extends Activity {
     private View placeholder;
 
     private static final int REQ_NOTIF = 2001;
+    private static final int REQ_STORAGE = 2002;
     private static boolean notifAsked = false;
+
+    private View settingsView;
+    private TextView settingsStatus;
 
     private final Realtime.Listener rt = new Realtime.Listener() {
         @Override public void onMessage(String json) { reload(); }
@@ -115,10 +124,7 @@ public class ConversationsActivity extends Activity {
             @Override public void onClick(View v) { showSearchTab(v); }
         });
         findViewById(R.id.tab_settings).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                showTab(placeholder(getString(R.string.settings_placeholder)));
-                setNavSelection((TextView) v);
-            }
+            @Override public void onClick(View v) { showSettingsTab(v); }
         });
 
         findViewById(R.id.txt_logout).setOnClickListener(new View.OnClickListener() {
@@ -157,19 +163,113 @@ public class ConversationsActivity extends Activity {
         e.apply();
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_STORAGE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                doSaveMedia();
+            } else {
+                showStatus(getString(R.string.settings_status_perm));
+            }
+        }
+    }
+
     private void showTab(View target) {
         content.removeAllViews();
         content.addView(target);
     }
 
-    private View placeholder(String text) {
-        if (placeholder == null) {
-            placeholder = new TextView(this);
+    private void showSettingsTab(View tab) {
+        if (settingsView == null) {
+            settingsView = LayoutInflater.from(this).inflate(R.layout.tab_settings, content, false);
+            String uname = session.username();
+            ((TextView) settingsView.findViewById(R.id.set_username))
+                    .setText(getString(R.string.settings_user_line, uname != null ? uname : "?"));
+            String uid = session.userId();
+            ((TextView) settingsView.findViewById(R.id.set_userid))
+                    .setText(getString(R.string.settings_id_line, uid != null ? uid : "?"));
+            settingsStatus = settingsView.findViewById(R.id.set_status);
+            settingsView.findViewById(R.id.btn_save_media).setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { saveMedia(); }
+            });
+            settingsView.findViewById(R.id.btn_clear_cache).setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { clearCache(); }
+            });
         }
-        ((TextView) placeholder).setText(text);
-        ((TextView) placeholder).setTextColor(getResources().getColor(R.color.on_surface_variant));
-        ((TextView) placeholder).setPadding(dp(16), dp(24), dp(16), dp(24));
-        return placeholder;
+        showTab(settingsView);
+        setNavSelection((TextView) tab);
+    }
+
+    private void showStatus(String s) {
+        if (settingsStatus != null) {
+            settingsStatus.setVisibility(View.VISIBLE);
+            settingsStatus.setText(s);
+        }
+    }
+
+    private void saveMedia() {
+        if (Build.VERSION.SDK_INT >= 23 && Build.VERSION.SDK_INT <= 28
+                && checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQ_STORAGE);
+            return;
+        }
+        doSaveMedia();
+    }
+
+    private void doSaveMedia() {
+        final File target = mediaTargetDir();
+        showStatus(getString(R.string.loading));
+        Async.exec(this, new Async.Worker<Integer>() {
+            @Override public Integer run() {
+                int n = 0;
+                if (!target.exists()) target.mkdirs();
+                File[] files = MediaStore.dir(ConversationsActivity.this).listFiles();
+                if (files != null) {
+                    for (File f : files) {
+                        try (FileInputStream in = new FileInputStream(f);
+                             FileOutputStream out = new FileOutputStream(new File(target, f.getName()))) {
+                            byte[] buf = new byte[16384];
+                            int r;
+                            while ((r = in.read(buf)) != -1) out.write(buf, 0, r);
+                            n++;
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
+                return n;
+            }
+        }, new Async.UI<Integer>() {
+            @Override public void on(Integer n, Exception err) {
+                if (n != null && n > 0) {
+                    showStatus(getString(R.string.settings_status_saved, n, target.getAbsolutePath()));
+                } else {
+                    showStatus(getString(R.string.settings_status_no_media));
+                }
+            }
+        });
+    }
+
+    private File mediaTargetDir() {
+        if (Build.VERSION.SDK_INT >= 29) {
+            File base = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+            return base == null ? new File(getCacheDir(), "LightChat") : new File(base, "LightChat");
+        }
+        return new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                "LightChat");
+    }
+
+    private void clearCache() {
+        Async.exec(this, new Async.Worker<Integer>() {
+            @Override public Integer run() {
+                return MediaStore.clearCached(ConversationsActivity.this);
+            }
+        }, new Async.UI<Integer>() {
+            @Override public void on(Integer n, Exception err) {
+                showStatus(getString(R.string.settings_status_cleared, n == null ? 0 : n));
+            }
+        });
     }
 
     private int dp(int v) {
