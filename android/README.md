@@ -18,7 +18,7 @@ Depuis la racine Gradle `android/` :
 ```powershell
 cd android
 .\gradlew.bat :app:assembleRelease      # APK signée (release)
-.\gradlew.bat :app:testDebugUnitTest    # tests JVM purs (Endpoints, Eco)
+.\gradlew.bat :app:testDebugUnitTest    # tests JVM purs (Json, modèles, Endpoints, Eco)
 ```
 
 L'APK release est produit à :
@@ -33,13 +33,20 @@ android/app/build/outputs/apk/release/app-release.apk
 2. Activer "Sources inconnues" (Paramètres → Sécurité).
 3. Ouvrir l'APK pour l'installer.
 
-## Écrans (Phase 2)
+## Écrans (Phase 3)
 
-- **LoginActivity** (launcher) : écran de connexion avec pseudo + mot de passe. Shell actuel
-  : une session localisée est simulée (`SessionStore`) puis la liste des discussions s'ouvre.
-  Le vrai appel `POST /api/auth/login` arrive en Phase 3.
-- **ConversationsActivity** : liste des discussions + barre de navigation en bas
-  (Chats / Amis / Recherche / Paramètres). Contenu factice tant qu'il n'y a pas de discussions.
+- **LoginActivity** (launcher) : connexion **réelle** — `POST /api/auth/login`, ou création de
+  compte via le lien « Créer un compte » (`POST /api/auth/register` : pseudo, mot de passe,
+  prénom, nom, âge, sexe). La session (token) est persistée localement (`SessionStore`,
+  `SharedPreferences`).
+- **ConversationsActivity** : liste **réelle** des discussions (`GET /api/conversations`),
+  libellés des DM résolus via `GET /api/friends` (nom prénom/nom, avatar couleur). Un appui
+  ouvre la discussion. Bouton « Déconnexion » en en-tête.
+- **DiscussionActivity** : conversation en direct — messages chargés par
+  `GET /api/messages?conv_id=`, **polling 2 s** tant que l'écran est visible, envoi de texte
+  par `POST /api/send`. Bulles : les miennes à droite (fond primaire), celles de l'autre à
+  gauche, messages « system » centrés.
+- Les onglets Amis / Recherche / Paramètres restent des coquilles (Phases 5–6).
 
 ## Réseau
 
@@ -47,9 +54,18 @@ android/app/build/outputs/apk/release/app-release.apk
 Base URL : https://lightchat.kennethafantsawo.workers.dev
 ```
 
-Définie dans `app/src/main/java/com/lightchat/net/Endpoints.java`. Les appels réseau
-(`ApiClient`, `HttpURLConnection` : aucune bibliothèque tierce) sont branchés à partir de la
-Phase 3.
+Définie dans `app/src/main/java/com/lightchat/net/Endpoints.java`. Appels réseau par
+`ApiClient` (`HttpURLConnection` : aucune bibliothèque tierce), exécutés hors du thread UI via
+`util/Async`. Écrans Phase 3 connectés en production dès le déploiement du Worker
+(`server/`, voir `docs/`).
+
+## Architecture (Phase 3)
+
+- `util/Json` : parseur JSON pur JDK (objet/tableau/string+échappements/numériques/booleans/null)
+  — testé en JVM pure.
+- `models/` : `Conversation` et `Message` (lecture snake_case via `fromJson`).
+- `net/` : `Endpoints`, `ApiClient` (HTTP), tests Endpoints + Eco.
+- `ui/` : `LoginActivity`, `ConversationsActivity`, `DiscussionActivity` — 15 tests JVM.
 
 ## Signatures / keystore
 
