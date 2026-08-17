@@ -19,6 +19,7 @@ import android.widget.TextView;
 
 import com.lightchat.R;
 import com.lightchat.SessionStore;
+import com.lightchat.net.Realtime;
 import com.lightchat.models.Conversation;
 import com.lightchat.net.ApiClient;
 import com.lightchat.util.Async;
@@ -59,6 +60,11 @@ public class ConversationsActivity extends Activity {
     private TextView searchStatus;
 
     private View placeholder;
+
+    private final Realtime.Listener rt = new Realtime.Listener() {
+        @Override public void onMessage(String json) { reload(); }
+        @Override public void onState(boolean open) { }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,6 +116,7 @@ public class ConversationsActivity extends Activity {
 
         findViewById(R.id.txt_logout).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
+                Realtime.get().stop();
                 session.clear();
                 startActivity(new Intent(ConversationsActivity.this, LoginActivity.class));
                 finish();
@@ -155,7 +162,17 @@ public class ConversationsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (session.hasSession()) reload();
+        if (session.hasSession()) {
+            Realtime.get().start(session.token());
+            Realtime.get().addListener(rt);
+            reload();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Realtime.get().removeListener(rt);
     }
 
     // ---------- Chats ----------

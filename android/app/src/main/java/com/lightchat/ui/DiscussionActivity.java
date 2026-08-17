@@ -17,6 +17,7 @@ import com.lightchat.R;
 import com.lightchat.SessionStore;
 import com.lightchat.models.Message;
 import com.lightchat.net.ApiClient;
+import com.lightchat.net.Realtime;
 import com.lightchat.util.Async;
 import com.lightchat.util.Json;
 
@@ -28,7 +29,8 @@ import java.util.List;
 import java.util.Map;
 
 public class DiscussionActivity extends Activity {
-    private static final long POLL_MS = 2000L;
+    private static final long POLL_FAST_MS = 2000L;
+    private static final long POLL_SLOW_MS = 10000L;
 
     private SessionStore session;
     private String convId;
@@ -41,6 +43,11 @@ public class DiscussionActivity extends Activity {
     private boolean alive = false;
     private boolean fetching = false;
     private boolean atBottom = true;
+
+    private final Realtime.Listener rt = new Realtime.Listener() {
+        @Override public void onMessage(String json) { handlePush(json); }
+        @Override public void onState(boolean open) { }
+    };
 
     private final Runnable pollLoop = new Runnable() {
         @Override public void run() {
@@ -90,6 +97,7 @@ public class DiscussionActivity extends Activity {
     protected void onResume() {
         super.onResume();
         alive = true;
+        Realtime.get().addListener(rt);
         handler.post(pollLoop);
     }
 
@@ -97,6 +105,7 @@ public class DiscussionActivity extends Activity {
     protected void onPause() {
         super.onPause();
         alive = false;
+        Realtime.get().removeListener(rt);
         handler.removeCallbacks(pollLoop);
     }
 
@@ -121,6 +130,32 @@ public class DiscussionActivity extends Activity {
                 handler.post(pollLoop);
             }
         });
+    }
+
+    private void handlePush(String jsonText) {
+        try {
+            Map<String, Object> m = Json.parseObject(jsonText);
+            if (!"message".equals(m.get("type"))) return;
+            Object mo = m.get("message");
+            if (!(mo instanceof Map)) return;
+            @SuppressWarnings("unchecked") Map<String, Object> mm = (Map<String, Object>) mo;
+            Message msg = Message.fromJson(mm);
+            if (msg.id == null || !convId.equals(msg.convId)) return;
+            msgMap.put(msg.id, msg);
+            List<Message> sorted = new ArrayList<Message>(msgMap.values());
+            Collections.sort(sorted, new Comparator<Message>() {
+                @Override public int compare(Message a, Message b) {
+                    if (a.createdAt != b.createdAt) return Long.compare(a.createdAt, b.createdAt);
+                    String ai = a.id == null ? "" : a.id;
+                    String bi = b.id == null ? "" : b.id;
+                    return ai.compareTo(bi);
+                }
+            });
+            adapter.setList(sorted);
+            adapter.notifyDataSetChanged();
+            if (atBottom && sorted.size() > 0) list.smoothScrollToPosition(sorted.size() - 1);
+        } catch (Exception ignored) {
+        }
     }
 
     private void fetchNew() {
@@ -168,7 +203,7 @@ public class DiscussionActivity extends Activity {
                     status.setVisibility(View.VISIBLE);
                     status.setText(R.string.msg_error);
                 }
-                handler.postDelayed(pollLoop, POLL_MS);
+                handler.postDelayed(pollLoop, Realtime.get().isOpen() ? POLL_SLOW_MS : POLL_FAST_MS);
             }
         });
     }
