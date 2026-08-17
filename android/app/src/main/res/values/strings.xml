@@ -8,4 +8,25 @@
     <string name="status_missing">Renseigne pseudo et mot de passe.</string>
     <string name="status_missing_register">Renseigne tous les champs.</string>
     <string name="status_invalid_age">Âge invalide.</string>
+
+    <string name="chat_label">Chats</string>
+    <string name="friends_label">Amis</string>
+    <string name="search_label">Recherche</string>
+    <string name="settings_label">Paramètres</string>
+    <string name="friend_placeholder">Tes amis apparaîtront ici.</string>
+    <string name="search_placeholder">Recherche d\'amis par pseudo.</string>
+    <string name="settings_placeholder">Paramètres (disponible en Phase 6).</string>
+
+    <string name="conv_empty">Aucune conversation pour l\'instant.</string>
+    <string name="conv_error">Impossible de charger les conversations.</string>
+    <string name="loading">Chargement…</string>
+    <string name="logout">Déconnexion</string>
+    <string name="group">Groupe</string>
+    <string name="unknown_contact">Inconnu</string>
+
+    <string name="msg_empty">Aucun message pour l\'instant.</string>
+    <string name="msg_hint">Écris un message…</string>
+    <string name="msg_error">Impossible de charger les messages.</string>
+    <string name="send">Envoyer</string>
+    <string name="send_error">Échec de l\'envoi.</string>
 </resources>

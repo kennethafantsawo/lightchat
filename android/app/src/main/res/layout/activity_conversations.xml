@@ -8,24 +8,69 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:padding="12dp"
         android:background="@color/surface_container_low">
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="@string/app_name"
             android:textColor="@color/on_surface"
             android:textSize="@dimen/text_title"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/txt_logout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/logout"
+            android:textColor="@color/secondary"
+            android:textSize="14sp"
+            android:padding="8dp" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/txt_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:visibility="gone"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="13sp" />
 
     <FrameLayout
         android:id="@+id/content"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1">
+
+        <FrameLayout
+            android:id="@+id/chat_frame"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/txt_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:text="@string/conv_empty"
+                android:textColor="@color/on_surface_variant"
+                android:padding="24dp" />
+
+            <ListView
+                android:id="@+id/list_conversations"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:divider="#00000000"
+                android:dividerHeight="2dp"
+                android:background="@color/background" />
+        </FrameLayout>
+    </FrameLayout>
 
     <LinearLayout
         android:id="@+id/bottom_nav"
@@ -40,7 +85,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="Chats"
+            android:text="@string/chat_label"
             android:textColor="@color/primary"
             android:textSize="12sp"
             android:textStyle="bold"
@@ -52,7 +97,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="Amis"
+            android:text="@string/friends_label"
             android:textColor="@color/on_surface_variant"
             android:textSize="12sp" />
 
@@ -62,7 +107,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="Recherche"
+            android:text="@string/search_label"
             android:textColor="@color/on_surface_variant"
             android:textSize="12sp" />
 
@@ -72,7 +117,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="Paramètres"
+            android:text="@string/settings_label"
             android:textColor="@color/on_surface_variant"
             android:textSize="12sp" />
     </LinearLayout>
