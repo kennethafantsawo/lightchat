@@ -16,10 +16,12 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.LruCache;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AnimationUtils;
 import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
@@ -77,6 +79,12 @@ public class DiscussionActivity extends Activity {
     private MediaRecorder recorder;
     private File voiceFile;
     private long recStartMs;
+
+    private final LruCache<String, Bitmap> bmpCache = new LruCache<String, Bitmap>(6 * 1024 * 1024) {
+        @Override protected int sizeOf(String key, Bitmap value) {
+            return value.getByteCount();
+        }
+    };
 
     private final Realtime.Listener rt = new Realtime.Listener() {
         @Override public void onMessage(String json) { handlePush(json); }
@@ -592,31 +600,32 @@ public class DiscussionActivity extends Activity {
         final TextView err = root.findViewById(R.id.photo_err);
         final String key = m.mediaKey;
         img.setTag(key);
+        errorInvalidate(img, err);
         if (key == null || key.isEmpty()) {
             showPhotoErr(img, err);
             return;
         }
-        if (MediaStore.exists(this, key)) {
-            Bitmap b = frameFor(MediaStore.localFile(this, key), m);
-            if (b != null) {
-                img.setImageBitmap(b);
-                err.setVisibility(View.GONE);
-                return;
-            }
-            showPhotoErr(img, err);
+        Bitmap cached = bmpCache.get(key);
+        if (cached != null && !cached.isRecycled()) {
+            img.setImageBitmap(cached);
+            err.setVisibility(View.GONE);
             return;
         }
         Async.exec(this, new Async.Worker<Bitmap>() {
             @Override public Bitmap run() throws Exception {
-                byte[] b = ApiClient.download("/api/media?key=" + key, session.token());
-                if (b == null) return null;
-                MediaStore.save(DiscussionActivity.this, key, b);
-                return frameFor(MediaStore.localFile(DiscussionActivity.this, key), m);
+                File f = MediaStore.localFile(DiscussionActivity.this, key);
+                if (!f.exists()) {
+                    byte[] b = ApiClient.download("/api/media?key=" + key, session.token());
+                    if (b == null) return null;
+                    MediaStore.save(DiscussionActivity.this, key, b);
+                }
+                return frameFor(f, m);
             }
         }, new Async.UI<Bitmap>() {
             @Override public void on(Bitmap bmp, Exception e) {
                 if (img.getTag() == null || !key.equals(img.getTag())) return;
-                if (bmp != null) {
+                if (bmp != null && !bmp.isRecycled()) {
+                    bmpCache.put(key, bmp);
                     img.setImageBitmap(bmp);
                     err.setVisibility(View.GONE);
                 } else {
@@ -624,6 +633,11 @@ public class DiscussionActivity extends Activity {
                 }
             }
         });
+    }
+
+    private void errorInvalidate(ImageView img, TextView err) {
+        img.setImageDrawable(null);
+        err.setVisibility(View.GONE);
     }
 
     private Bitmap frameFor(File f, Message m) {
@@ -725,6 +739,7 @@ public class DiscussionActivity extends Activity {
             }
             if (convertView == null) {
                 convertView = LayoutInflater.from(DiscussionActivity.this).inflate(layout, parent, false);
+                convertView.startAnimation(AnimationUtils.loadAnimation(DiscussionActivity.this, R.anim.scale_in));
             }
             switch (type) {
                 case TYPE_ME_PHOTO:

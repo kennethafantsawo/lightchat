@@ -54,6 +54,10 @@ android/app/build/outputs/apk/release/app-release.apk
   arrière-plan (canaux Android 8+ ; permission `POST_NOTIFICATIONS` demandée sur Android 13+).
 - **Paramètres** : pseudo + ID, **sauvegarde des médias en cache vers Downloads/`LightChat`**
   (carte SD), vidage du cache.
+- **Design & performance** : décodage d'images hors thread UI avec cache `LruCache`,
+  chargement conversations + amis en parallèle, animations natives légères (bulles scale-in,
+  apparition des listes, fondu des onglets et du login), boutons ripple, icônes vectorielles,
+  chevron & avatar agrandi sur les conversations. APK < 100 Ko.
 
 ## Réseau
 

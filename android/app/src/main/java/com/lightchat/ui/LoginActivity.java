@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.view.animation.AnimationUtils;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -56,6 +57,7 @@ public class LoginActivity extends Activity {
             @Override public void onClick(View v) { registerMode = !registerMode; toggleMode(); }
         });
         toggleMode();
+        getWindow().getDecorView().startAnimation(AnimationUtils.loadAnimation(this, R.anim.fade_in));
     }
 
     private void toggleMode() {

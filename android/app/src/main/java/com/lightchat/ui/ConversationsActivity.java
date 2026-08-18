@@ -13,6 +13,7 @@ import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
@@ -43,6 +44,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ConversationsActivity extends Activity {
     private SessionStore session;
@@ -77,6 +79,11 @@ public class ConversationsActivity extends Activity {
     private View settingsView;
     private TextView settingsStatus;
 
+    private List<Conversation> pendingConvs;
+    private Map<String, String> pendingNames;
+    private Map<String, String> pendingColors;
+    private Set<String> pendingIds;
+
     private final Realtime.Listener rt = new Realtime.Listener() {
         @Override public void onMessage(String json) { reload(); }
         @Override public void onState(boolean open) { }
@@ -99,6 +106,7 @@ public class ConversationsActivity extends Activity {
         list = findViewById(R.id.list_conversations);
         adapter = new ConversationAdapter();
         list.setAdapter(adapter);
+        list.setLayoutAnimation(AnimationUtils.loadLayoutAnimation(this, R.anim.list_layout));
         list.setEmptyView(findViewById(R.id.txt_empty));
         list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override public void onItemClick(AdapterView<?> p, View v, int pos, long id) {
@@ -178,6 +186,7 @@ public class ConversationsActivity extends Activity {
     private void showTab(View target) {
         content.removeAllViews();
         content.addView(target);
+        target.startAnimation(AnimationUtils.loadAnimation(this, R.anim.fade_in));
     }
 
     private void showSettingsTab(View tab) {
@@ -311,11 +320,18 @@ public class ConversationsActivity extends Activity {
         status.setVisibility(View.VISIBLE);
         status.setText(R.string.loading);
         final String token = session.token();
-        Async.exec(this, new Async.Worker<Boolean>() {
-            @Override public Boolean run() {
+        pendingConvs = null;
+        pendingNames = null;
+        pendingColors = null;
+        pendingIds = null;
+        final boolean[] gotConvs = {false};
+        final AtomicInteger gate = new AtomicInteger(0);
+
+        Async.exec(this, new Async.Worker<List<Conversation>>() {
+            @Override public List<Conversation> run() {
                 try {
                     ApiClient.ApiResponse c = ApiClient.call("GET", "/api/conversations", null, token);
-                    if (c.status != 200) return false;
+                    if (c.status != 200) return null;
                     Map<String, Object> cm = Json.parseObject(c.body);
                     List<Object> arr = (List<Object>) cm.get("conversations");
                     List<Conversation> convs = new ArrayList<Conversation>();
@@ -325,57 +341,86 @@ public class ConversationsActivity extends Activity {
                             convs.add(Conversation.fromJson(m));
                         }
                     }
-                    items.clear();
-                    items.addAll(convs);
-                    Map<String, String> names = new HashMap<String, String>();
-                    Map<String, String> colors = new HashMap<String, String>();
-                    Set<String> ids = new HashSet<String>();
-                    try {
-                        ApiClient.ApiResponse f = ApiClient.call("GET", "/api/friends", null, token);
-                        if (f.status == 200) {
-                            Map<String, Object> fm = Json.parseObject(f.body);
-                            List<Object> fl = (List<Object>) fm.get("friends");
-                            if (fl != null) {
-                                for (Object o : fl) {
-                                    @SuppressWarnings("unchecked") Map<String, Object> m = (Map<String, Object>) o;
-                                    String id = (String) m.get("id");
-                                    if (id == null) continue;
-                                    ids.add(id);
-                                    String fn = (String) m.get("first_name");
-                                    String ln = (String) m.get("last_name");
-                                    String name = join(fn, ln);
-                                    if (name == null || name.isEmpty()) name = (String) m.get("username");
-                                    if (name == null) name = getString(R.string.unknown_contact);
-                                    names.put(id, name);
-                                    String col = (String) m.get("color");
-                                    if (col != null) colors.put(id, col);
-                                }
-                            }
-                        }
-                    } catch (Exception e) { /* friends is optional */ }
-                    friendNames.clear();
-                    friendNames.putAll(names);
-                    friendColors.clear();
-                    friendColors.putAll(colors);
-                    friendIds.clear();
-                    friendIds.addAll(ids);
-                    return true;
+                    return convs;
                 } catch (Exception e) {
-                    return false;
+                    return null;
                 }
             }
-        }, new Async.UI<Boolean>() {
-            @Override public void on(Boolean ok, Exception err) {
-                if (ok != null && ok) {
-                    status.setVisibility(View.GONE);
-                    adapter.notifyDataSetChanged();
-                    cacheTitles();
-                    if (searchAdapter != null) searchAdapter.notifyDataSetChanged();
-                } else {
-                    status.setText(R.string.conv_error);
+        }, new Async.UI<List<Conversation>>() {
+            @Override public void on(List<Conversation> convs, Exception err) {
+                if (convs != null) {
+                    gotConvs[0] = true;
+                    pendingConvs = convs;
                 }
+                if (gate.incrementAndGet() == 2) applyReload(gotConvs[0]);
             }
         });
+
+        Async.exec(this, new Async.Worker<Map<String, Object>>() {
+            @Override public Map<String, Object> run() {
+                Map<String, String> names = new HashMap<String, String>();
+                Map<String, String> colors = new HashMap<String, String>();
+                Set<String> ids = new HashSet<String>();
+                try {
+                    ApiClient.ApiResponse f = ApiClient.call("GET", "/api/friends", null, token);
+                    if (f.status == 200) {
+                        Map<String, Object> fm = Json.parseObject(f.body);
+                        List<Object> fl = (List<Object>) fm.get("friends");
+                        if (fl != null) {
+                            for (Object o : fl) {
+                                @SuppressWarnings("unchecked") Map<String, Object> m = (Map<String, Object>) o;
+                                String id = (String) m.get("id");
+                                if (id == null) continue;
+                                ids.add(id);
+                                String name = fullName(m);
+                                names.put(id, name);
+                                String col = (String) m.get("color");
+                                if (col != null) colors.put(id, col);
+                            }
+                        }
+                    }
+                } catch (Exception e) { /* friends is optional */ }
+                Map<String, Object> out = new HashMap<String, Object>();
+                out.put("names", names);
+                out.put("colors", colors);
+                out.put("ids", ids);
+                return out;
+            }
+        }, new Async.UI<Map<String, Object>>() {
+            @Override public void on(Map<String, Object> r, Exception err) {
+                if (r != null) {
+                    pendingNames = (Map<String, String>) r.get("names");
+                    pendingColors = (Map<String, String>) r.get("colors");
+                    pendingIds = (Set<String>) r.get("ids");
+                }
+                if (gate.incrementAndGet() == 2) applyReload(gotConvs[0]);
+            }
+        });
+    }
+
+    private void applyReload(boolean ok) {
+        final String unknown = getString(R.string.unknown_contact);
+        items.clear();
+        if (pendingConvs != null) items.addAll(pendingConvs);
+        friendNames.clear();
+        if (pendingNames != null) friendNames.putAll(pendingNames);
+        friendColors.clear();
+        if (pendingColors != null) friendColors.putAll(pendingColors);
+        friendIds.clear();
+        if (pendingIds != null) friendIds.addAll(pendingIds);
+        for (Conversation c : items) {
+            if ("dm".equals(c.kind) && !friendNames.containsKey(otherId(c.convId))) {
+                friendNames.put(otherId(c.convId), unknown);
+            }
+        }
+        if (ok) {
+            status.setVisibility(View.GONE);
+            adapter.notifyDataSetChanged();
+            cacheTitles();
+            if (searchAdapter != null) searchAdapter.notifyDataSetChanged();
+        } else {
+            status.setText(R.string.conv_error);
+        }
     }
 
     private static String join(String a, String b) {

@@ -110,7 +110,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:text="Se connecter"
-            android:background="@drawable/bg_btn_primary"
+            android:background="@drawable/bg_btn_primary_ripple"
             android:textColor="@color/on_primary" />
 
         <TextView

@@ -24,6 +24,7 @@
     <string name="conv_error">Impossible de charger les conversations.</string>
     <string name="loading">Chargement…</string>
     <string name="logout">Déconnexion</string>
+    <string name="back">Retour</string>
     <string name="group">Groupe</string>
     <string name="unknown_contact">Inconnu</string>
 
