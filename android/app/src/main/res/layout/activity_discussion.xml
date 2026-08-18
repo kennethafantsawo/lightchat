@@ -39,10 +39,32 @@
             android:id="@+id/txt_disc_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
             android:padding="4dp"
             android:visibility="gone"
             android:textColor="@color/error"
             android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/btn_search_disc"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:gravity="center"
+            android:background="@drawable/bg_chip_ripple"
+            android:text="@string/disc_search"
+            android:textColor="@color/on_surface"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/btn_mute"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:gravity="center"
+            android:background="@drawable/bg_chip_ripple"
+            android:text="@string/bell_on"
+            android:textColor="@color/on_surface"
+            android:textSize="16sp" />
     </LinearLayout>
 
     <FrameLayout
@@ -67,6 +89,40 @@
             android:divider="#00000000"
             android:dividerHeight="2dp" />
     </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/edit_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:background="@color/surface_container_low">
+
+        <TextView
+            android:id="@+id/edit_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="@color/on_surface"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/edit_cancel"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:background="@drawable/bg_chip_ripple"
+            android:text="@string/disc_cancel"
+            android:textColor="@color/on_surface"
+            android:textSize="16sp" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

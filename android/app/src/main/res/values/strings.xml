@@ -44,6 +44,27 @@
     <string name="media_video">Vidéo</string>
     <string name="media_choose">Choisir</string>
 
+    <string name="msg_reply">Répondre</string>
+    <string name="msg_edit">Modifier</string>
+    <string name="msg_delete">Supprimer</string>
+    <string name="msg_forward">Transférer</string>
+    <string name="msg_deleted">Message supprimé.</string>
+    <string name="msg_editing">Modifier le message…</string>
+    <string name="msg_reply_to">Répondre à : %1$s</string>
+    <string name="msg_forward_to">Transférer vers…</string>
+    <string name="msg_no_convs">Aucune conversation pour transférer.</string>
+    <string name="msg_forwarded">Message transféré.</string>
+    <string name="confirm_delete">Supprimer ce message pour tout le monde ?</string>
+    <string name="edited_marker">Modifié</string>
+    <string name="search_disc_hint">Rechercher dans la discussion…</string>
+    <string name="search_disc_empty">Aucun résultat.</string>
+    <string name="disc_search">🔍</string>
+    <string name="disc_cancel">✕</string>
+    <string name="bell_on">🔔</string>
+    <string name="bell_off">🔕</string>
+    <string name="mute_status">Notifications désactivées pour cette conversation.</string>
+    <string name="unmute_status">Notifications réactivées.</string>
+
     <string-array name="emoji_list">
         <item>😀</item>
         <item>😁</item>

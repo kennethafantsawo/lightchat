@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -33,6 +34,7 @@ import android.widget.TextView;
 
 import com.lightchat.R;
 import com.lightchat.SessionStore;
+import com.lightchat.models.Conversation;
 import com.lightchat.models.Message;
 import com.lightchat.net.ApiClient;
 import com.lightchat.net.Realtime;
@@ -48,9 +50,12 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class DiscussionActivity extends Activity {
     private static final long POLL_FAST_MS = 2000L;
@@ -60,18 +65,34 @@ public class DiscussionActivity extends Activity {
     private static final int REQ_MIC = 1003;
     private static final long MAX_MEDIA_BYTES = 50L * 1024L * 1024L;
     private static final int MAX_IMAGE_EDGE = 1200;
+    private static final String PREFS_LC = "lc_prefs";
+    private static final String PREFS_MUTED = "muted_convs";
+    private static final String PREFS_TITLES = "lc_convs";
+
+    private static final int MODE_NONE = 0;
+    private static final int MODE_REPLY = 1;
+    private static final int MODE_EDIT = 2;
+    private static final int MODE_SEARCH = 3;
 
     private SessionStore session;
     private String convId;
     private ListView list;
     private TextView status;
+    private TextView muteBtn;
     private EditText input;
+    private LinearLayout editBar;
+    private TextView editLabel;
     private MessageAdapter adapter;
     private final Map<String, Message> msgMap = new LinkedHashMap<>();
     private final Handler handler = new Handler();
     private boolean alive = false;
     private boolean fetching = false;
     private boolean atBottom = true;
+
+    private int barMode = MODE_NONE;
+    private Message replyMsg;
+    private Message editMsg;
+    private String searchQuery;
 
     private MediaPlayer player;
     private TextView playerBtn;
@@ -116,6 +137,9 @@ public class DiscussionActivity extends Activity {
         status = findViewById(R.id.txt_disc_status);
         list = findViewById(R.id.msg_list);
         input = findViewById(R.id.input_msg);
+        editBar = findViewById(R.id.edit_bar);
+        editLabel = findViewById(R.id.edit_label);
+        muteBtn = findViewById(R.id.btn_mute);
         Button send = findViewById(R.id.btn_send);
         adapter = new MessageAdapter();
         list.setAdapter(adapter);
@@ -142,6 +166,15 @@ public class DiscussionActivity extends Activity {
         findViewById(R.id.btn_mic).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { toggleMic(); }
         });
+        findViewById(R.id.edit_cancel).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { cancelBar(); }
+        });
+        findViewById(R.id.btn_search_disc).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { showSearchDialog(); }
+        });
+        muteBtn.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { toggleMute(); }
+        });
 
         LinearLayout emojiRow = findViewById(R.id.emoji_container);
         String[] emojis = getResources().getStringArray(R.array.emoji_list);
@@ -156,6 +189,7 @@ public class DiscussionActivity extends Activity {
             });
             emojiRow.addView(t);
         }
+        refreshMuteButton();
     }
 
     @Override
@@ -183,6 +217,248 @@ public class DiscussionActivity extends Activity {
             recorder = null;
         }
     }
+
+    // ---------- Mute ----------
+
+    private void toggleMute() {
+        SharedPreferences sp = getSharedPreferences(PREFS_LC, MODE_PRIVATE);
+        Set<String> muted = new HashSet<String>(sp.getStringSet(PREFS_MUTED, Collections.<String>emptySet()));
+        if (muted.contains(convId)) {
+            muted.remove(convId);
+            sp.edit().putStringSet(PREFS_MUTED, muted).apply();
+            refreshMuteButton();
+            showStatus(getString(R.string.unmute_status));
+        } else {
+            muted.add(convId);
+            sp.edit().putStringSet(PREFS_MUTED, muted).apply();
+            refreshMuteButton();
+            showStatus(getString(R.string.mute_status));
+        }
+    }
+
+    public static boolean isMuted(android.content.Context ctx, String convId) {
+        if (convId == null) return false;
+        SharedPreferences sp = ctx.getSharedPreferences(PREFS_LC, ctx.MODE_PRIVATE);
+        Set<String> muted = sp.getStringSet(PREFS_MUTED, null);
+        return muted != null && muted.contains(convId);
+    }
+
+    private void refreshMuteButton() {
+        if (muteBtn != null) {
+            muteBtn.setText(isMuted(this, convId) ? getString(R.string.bell_off) : getString(R.string.bell_on));
+        }
+    }
+
+    // ---------- Reply / Edit / Forward / Delete ----------
+
+    private void showMessageActions(final Message m) {
+        List<String> opts = new ArrayList<String>();
+        final List<Integer> action = new ArrayList<Integer>();
+        opts.add(getString(R.string.msg_reply));
+        action.add(0);
+        boolean mine = isMine(m);
+        if (mine && !m.isDeleted() && ("text".equals(m.type) || "emoji".equals(m.type))) {
+            opts.add(getString(R.string.msg_edit));
+            action.add(1);
+        }
+        opts.add(getString(R.string.msg_delete));
+        action.add(2);
+        if (!m.isDeleted() && !"system".equals(m.type)) {
+            opts.add(getString(R.string.msg_forward));
+            action.add(3);
+        }
+        new AlertDialog.Builder(this)
+            .setTitle(null)
+            .setItems(opts.toArray(new String[0]), new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int which) {
+                    int a = action.get(which);
+                    if (a == 0) startReply(m);
+                    else if (a == 1) startEdit(m);
+                    else if (a == 2) confirmDelete(m);
+                    else forward(m);
+                }
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
+    }
+
+    private void startReply(Message m) {
+        cancelBar();
+        barMode = MODE_REPLY;
+        replyMsg = m;
+        editBar.setVisibility(View.VISIBLE);
+        editLabel.setText(getString(R.string.msg_reply_to, preview(m)));
+    }
+
+    private void startEdit(Message m) {
+        cancelBar();
+        barMode = MODE_EDIT;
+        editMsg = m;
+        editBar.setVisibility(View.VISIBLE);
+        editLabel.setText(R.string.msg_editing);
+        input.setText(m.body != null ? m.body : "");
+        input.setSelection(input.getText().length());
+        input.requestFocus();
+    }
+
+    private void cancelBar() {
+        barMode = MODE_NONE;
+        replyMsg = null;
+        editMsg = null;
+        searchQuery = null;
+        editBar.setVisibility(View.GONE);
+        if (barHadSearch) refresh();
+        barHadSearch = false;
+    }
+
+    private boolean barHadSearch = false;
+
+    private void confirmDelete(final Message m) {
+        new AlertDialog.Builder(this)
+            .setMessage(R.string.confirm_delete)
+            .setPositiveButton(R.string.msg_delete, new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int w) { doDelete(m); }
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
+    }
+
+    private void doDelete(final Message m) {
+        final String token = session.token();
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() throws Exception {
+                String json = "{\"message_id\":\"" + esc(m.id) + "\"}";
+                ApiClient.ApiResponse r = ApiClient.call("POST", "/api/messages/delete", json, token);
+                return r.status == 200;
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                if (ok != null && ok) {
+                    msgMap.remove(m.id);
+                    refresh();
+                } else {
+                    showStatus(getString(R.string.send_error));
+                }
+            }
+        });
+    }
+
+    private void forward(final Message m) {
+        final String token = session.token();
+        Async.exec(this, new Async.Worker<List<Conversation>>() {
+            @Override public List<Conversation> run() {
+                try {
+                    ApiClient.ApiResponse c = ApiClient.call("GET", "/api/conversations", null, token);
+                    if (c.status != 200) return null;
+                    Map<String, Object> cm = Json.parseObject(c.body);
+                    List<Object> arr = (List<Object>) cm.get("conversations");
+                    List<Conversation> convs = new ArrayList<Conversation>();
+                    if (arr != null) {
+                        for (Object o : arr) {
+                            @SuppressWarnings("unchecked") Map<String, Object> x = (Map<String, Object>) o;
+                            Conversation cv = Conversation.fromJson(x);
+                            if (!convId.equals(cv.convId)) convs.add(cv);
+                        }
+                    }
+                    return convs;
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+        }, new Async.UI<List<Conversation>>() {
+            @Override public void on(List<Conversation> convs, Exception err) {
+                if (convs == null || convs.isEmpty()) {
+                    showStatus(getString(R.string.msg_no_convs));
+                    return;
+                }
+                final String[] labels = new String[convs.size()];
+                for (int i = 0; i < convs.size(); i++) {
+                    Conversation c = convs.get(i);
+                    labels[i] = titleFor(c);
+                }
+                new AlertDialog.Builder(DiscussionActivity.this)
+                    .setTitle(R.string.msg_forward_to)
+                    .setItems(labels, new DialogInterface.OnClickListener() {
+                        @Override public void onClick(DialogInterface d, int which) {
+                            doForward(m, convs.get(which));
+                        }
+                    })
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+            }
+        });
+    }
+
+    private String titleFor(Conversation c) {
+        SharedPreferences sp = getSharedPreferences(PREFS_TITLES, MODE_PRIVATE);
+        String t = sp.getString(c.convId, null);
+        return (t == null || t.isEmpty()) ? getString(R.string.group) : t;
+    }
+
+    private void doForward(final Message m, final Conversation target) {
+        final String token = session.token();
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() throws Exception {
+                StringBuilder body = new StringBuilder();
+                body.append("{\"conv_id\":\"").append(esc(target.convId))
+                    .append("\",\"type\":\"").append(esc(m.type)).append("\"");
+                if (m.mediaKey != null && !m.mediaKey.isEmpty()) {
+                    body.append(",\"media_key\":\"").append(esc(m.mediaKey))
+                        .append("\",\"mime\":\"").append(esc(m.mime != null ? m.mime : "application/octet-stream")).append("\"");
+                    if (m.durationMs > 0) body.append(",\"duration_ms\":").append(m.durationMs);
+                } else {
+                    body.append(",\"body\":\"").append(esc(m.body != null ? m.body : "")).append("\"");
+                }
+                body.append("}");
+                ApiClient.ApiResponse r = ApiClient.call("POST", "/api/send", body.toString(), token);
+                return r.status == 200;
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                showStatus(ok != null && ok ? getString(R.string.msg_forwarded) : getString(R.string.send_error));
+            }
+        });
+    }
+
+    // ---------- Search ----------
+
+    private void showSearchDialog() {
+        final EditText q = new EditText(this);
+        q.setSingleLine();
+        q.setHint(R.string.search_disc_hint);
+        q.setTextColor(getResources().getColor(R.color.on_surface));
+        q.setHintTextColor(getResources().getColor(R.color.on_surface_variant));
+        q.setPadding(dp(12), dp(8), dp(12), dp(8));
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.disc_search)
+            .setView(q)
+            .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int w) { applySearch(q.getText().toString().trim()); }
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
+    }
+
+    private void applySearch(String qtext) {
+        if (qtext.isEmpty()) {
+            if (barMode == MODE_SEARCH) {
+                cancelBar();
+                return;
+            }
+            return;
+        }
+        barHadSearch = barMode == MODE_SEARCH;
+        barMode = MODE_SEARCH;
+        replyMsg = null;
+        editMsg = null;
+        searchQuery = qtext.toLowerCase(Locale.ROOT);
+        editBar.setVisibility(View.VISIBLE);
+        editLabel.setText(getString(R.string.disc_search) + "  " + qtext);
+        refresh();
+        if (adapter.getCount() == 0) showStatus(getString(R.string.search_disc_empty));
+    }
+
+    // ---------- Media ----------
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -397,14 +673,28 @@ public class DiscussionActivity extends Activity {
         }
     }
 
+    // ---------- Send text / edit ----------
+
     private void sendMessage() {
         final String text = input.getText().toString().trim();
         if (text.isEmpty()) return;
+        if (barMode == MODE_EDIT && editMsg != null) {
+            editMessage(editMsg, text);
+            return;
+        }
         input.setText("");
-        final String json = "{\"conv_id\":\"" + esc(convId) + "\",\"type\":\"text\",\"body\":\"" + esc(text) + "\"}";
+        final String replyId = (barMode == MODE_REPLY && replyMsg != null) ? replyMsg.id : null;
+        if (replyId != null) cancelBar();
+        StringBuilder json = new StringBuilder();
+        json.append("{\"conv_id\":\"").append(esc(convId))
+            .append("\",\"type\":\"text\",\"body\":\"").append(esc(text)).append("\"");
+        if (replyId != null) {
+            json.append(",\"reply_to_id\":\"").append(esc(replyId)).append("\"");
+        }
+        json.append("}");
         Async.exec(this, new Async.Worker<ApiClient.ApiResponse>() {
             @Override public ApiClient.ApiResponse run() throws Exception {
-                return ApiClient.call("POST", "/api/send", json, session.token());
+                return ApiClient.call("POST", "/api/send", json.toString(), session.token());
             }
         }, new Async.UI<ApiClient.ApiResponse>() {
             @Override public void on(ApiClient.ApiResponse resp, Exception err) {
@@ -414,37 +704,119 @@ public class DiscussionActivity extends Activity {
                     input.setText(text);
                     return;
                 }
+                mergeSendPayload(resp.body);
                 status.setVisibility(View.GONE);
                 handler.post(pollLoop);
             }
         });
     }
 
-    private void handlePush(String jsonText) {
+    private void mergeSendPayload(String body) {
         try {
-            Map<String, Object> m = Json.parseObject(jsonText);
-            if (!"message".equals(m.get("type"))) return;
-            Object mo = m.get("message");
+            Map<String, Object> map = Json.parseObject(body);
+            Object mo = map.get("message");
             if (!(mo instanceof Map)) return;
             @SuppressWarnings("unchecked") Map<String, Object> mm = (Map<String, Object>) mo;
             Message msg = Message.fromJson(mm);
-            if (msg.id == null || !convId.equals(msg.convId)) return;
-            msgMap.put(msg.id, msg);
-            List<Message> sorted = new ArrayList<Message>(msgMap.values());
-            Collections.sort(sorted, new Comparator<Message>() {
-                @Override public int compare(Message a, Message b) {
-                    if (a.createdAt != b.createdAt) return Long.compare(a.createdAt, b.createdAt);
-                    String ai = a.id == null ? "" : a.id;
-                    String bi = b.id == null ? "" : b.id;
-                    return ai.compareTo(bi);
-                }
-            });
-            adapter.setList(sorted);
-            adapter.notifyDataSetChanged();
-            if (atBottom && sorted.size() > 0) list.smoothScrollToPosition(sorted.size() - 1);
+            if (msg.id != null) {
+                msgMap.put(msg.id, msg);
+                refresh();
+            }
         } catch (Exception ignored) {
         }
     }
+
+    private void editMessage(final Message m, final String text) {
+        final String token = session.token();
+        final String json = "{\"message_id\":\"" + esc(m.id) + "\",\"body\":\"" + esc(text) + "\"}";
+        Async.exec(this, new Async.Worker<ApiClient.ApiResponse>() {
+            @Override public ApiClient.ApiResponse run() throws Exception {
+                return ApiClient.call("POST", "/api/messages/edit", json, token);
+            }
+        }, new Async.UI<ApiClient.ApiResponse>() {
+            @Override public void on(ApiClient.ApiResponse resp, Exception err) {
+                if (err != null || resp == null || resp.status != 200) {
+                    status.setVisibility(View.VISIBLE);
+                    status.setText(R.string.send_error);
+                    return;
+                }
+                try {
+                    Map<String, Object> map = Json.parseObject(resp.body);
+                    Object mo = map.get("message");
+                    if (mo instanceof Map) {
+                        @SuppressWarnings("unchecked") Map<String, Object> mm = (Map<String, Object>) mo;
+                        Message updated = Message.fromJson(mm);
+                        if (updated.id != null) msgMap.put(updated.id, updated);
+                    }
+                } catch (Exception ignored) {
+                }
+                input.setText("");
+                cancelBar();
+                status.setVisibility(View.GONE);
+                refresh();
+            }
+        });
+    }
+
+    // ---------- Push ----------
+
+    private void handlePush(String jsonText) {
+        try {
+            Map<String, Object> m = Json.parseObject(jsonText);
+            String type = (String) m.get("type");
+            if ("message".equals(type)) {
+                Object mo = m.get("message");
+                if (!(mo instanceof Map)) return;
+                @SuppressWarnings("unchecked") Map<String, Object> mm = (Map<String, Object>) mo;
+                Message msg = Message.fromJson(mm);
+                if (msg.id == null || !convId.equals(msg.convId)) return;
+                if (msg.isDeleted()) {
+                    msgMap.remove(msg.id);
+                } else {
+                    msgMap.put(msg.id, msg);
+                }
+                refresh();
+            } else if ("message_edit".equals(type)) {
+                Object mo = m.get("message");
+                if (!(mo instanceof Map)) return;
+                @SuppressWarnings("unchecked") Map<String, Object> mm = (Map<String, Object>) mo;
+                Message msg = Message.fromJson(mm);
+                if (msg.id == null || !convId.equals(msg.convId)) return;
+                msgMap.put(msg.id, msg);
+                refresh();
+            } else if ("message_delete".equals(type)) {
+                String mid = (String) m.get("message_id");
+                if (mid != null && convId.equals(m.get("conv_id"))) {
+                    msgMap.remove(mid);
+                    refresh();
+                }
+            } else if ("read".equals(type)) {
+                if (!convId.equals(m.get("conv_id"))) return;
+                long upTo = toLong(m.get("up_to"));
+                String reader = (String) m.get("user_id");
+                boolean changed = false;
+                List<Message> vals = new ArrayList<Message>(msgMap.values());
+                for (Message cur : vals) {
+                    if (cur.mine(session.userId())
+                            && cur.createdAt <= upTo
+                            && !"read".equals(cur.status)
+                            && reader != null) {
+                        msgMap.put(cur.id, cur.withStatus("read"));
+                        changed = true;
+                    }
+                }
+                if (changed) refresh();
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static long toLong(Object o) {
+        if (o instanceof Number) return ((Number) o).longValue();
+        return 0L;
+    }
+
+    // ---------- Fetch ----------
 
     private void fetchNew() {
         if (fetching) return;
@@ -467,22 +839,18 @@ public class DiscussionActivity extends Activity {
                             for (Object o : arr) {
                                 @SuppressWarnings("unchecked") Map<String, Object> m = (Map<String, Object>) o;
                                 Message msg = Message.fromJson(m);
-                                if (msg.id != null) msgMap.put(msg.id, msg);
+                                if (msg.id != null) {
+                                    if (msg.isDeleted()) {
+                                        msgMap.remove(msg.id);
+                                    } else {
+                                        msgMap.put(msg.id, msg);
+                                    }
+                                }
                             }
                         }
-                        List<Message> sorted = new ArrayList<Message>(msgMap.values());
-                        Collections.sort(sorted, new Comparator<Message>() {
-                            @Override public int compare(Message a, Message b) {
-                                if (a.createdAt != b.createdAt) return Long.compare(a.createdAt, b.createdAt);
-                                String ai = a.id == null ? "" : a.id;
-                                String bi = b.id == null ? "" : b.id;
-                                return ai.compareTo(bi);
-                            }
-                        });
-                        adapter.setList(sorted);
-                        adapter.notifyDataSetChanged();
-                        if (atBottom && sorted.size() > 0) list.smoothScrollToPosition(sorted.size() - 1);
+                        refresh();
                         status.setVisibility(View.GONE);
+                        if (atBottom) markRead();
                     } catch (Exception e) {
                         status.setVisibility(View.VISIBLE);
                         status.setText(R.string.msg_error);
@@ -494,6 +862,54 @@ public class DiscussionActivity extends Activity {
                 handler.postDelayed(pollLoop, Realtime.get().isOpen() ? POLL_SLOW_MS : POLL_FAST_MS);
             }
         });
+    }
+
+    private void markRead() {
+        final String token = session.token();
+        final String json = "{\"conv_id\":\"" + esc(convId) + "\"}";
+        Async.exec(this, new Async.Worker<Void>() {
+            @Override public Void run() throws Exception {
+                ApiClient.call("POST", "/api/messages/read", json, token);
+                return null;
+            }
+        }, new Async.UI<Void>() {
+            @Override public void on(Void v, Exception err) {
+            }
+        });
+    }
+
+    // ---------- List ----------
+
+    private void refresh() {
+        List<Message> all = new ArrayList<Message>(msgMap.values());
+        Collections.sort(all, new Comparator<Message>() {
+            @Override public int compare(Message a, Message b) {
+                if (a.createdAt != b.createdAt) return Long.compare(a.createdAt, b.createdAt);
+                String ai = a.id == null ? "" : a.id;
+                String bi = b.id == null ? "" : b.id;
+                return ai.compareTo(bi);
+            }
+        });
+        List<Message> shown = all;
+        if (barMode == MODE_SEARCH && searchQuery != null && !searchQuery.isEmpty()) {
+            shown = new ArrayList<Message>();
+            for (Message cur : all) {
+                if (matchesSearch(cur)) shown.add(cur);
+            }
+        }
+        adapter.setList(shown);
+        adapter.notifyDataSetChanged();
+        if (atBottom && shown.size() > 0) list.smoothScrollToPosition(shown.size() - 1);
+    }
+
+    private boolean matchesSearch(Message m) {
+        String d = display(m).toLowerCase(Locale.ROOT);
+        return d.contains(searchQuery);
+    }
+
+    private void showStatus(String s) {
+        status.setVisibility(View.VISIBLE);
+        status.setText(s);
     }
 
     private int dp(int v) {
@@ -688,6 +1104,20 @@ public class DiscussionActivity extends Activity {
         return "[" + m.type + "]";
     }
 
+    private String preview(Message m) {
+        if (m == null) return "";
+        if ("photo".equals(m.type)) return getString(R.string.notif_photo);
+        if ("video".equals(m.type)) return getString(R.string.notif_video);
+        if ("audio".equals(m.type)) return getString(R.string.notif_audio);
+        return display(m);
+    }
+
+    private boolean isMine(Message m) {
+        return m.mine(session.userId());
+    }
+
+    // ---------- Adapter ----------
+
     private class MessageAdapter extends BaseAdapter {
         private static final int TYPE_SYSTEM = 0;
         private static final int TYPE_ME_TEXT = 1;
@@ -719,13 +1149,8 @@ public class DiscussionActivity extends Activity {
             return mine ? TYPE_ME_TEXT : TYPE_OTHER_TEXT;
         }
 
-        private boolean isMine(Message m) {
-            String me = session.userId();
-            return me != null && me.equals(m.senderId);
-        }
-
         @Override public View getView(int i, View convertView, ViewGroup parent) {
-            Message m = getItem(i);
+            final Message m = getItem(i);
             int type = getItemViewType(i);
             int layout;
             switch (type) {
@@ -741,6 +1166,12 @@ public class DiscussionActivity extends Activity {
                 convertView = LayoutInflater.from(DiscussionActivity.this).inflate(layout, parent, false);
                 convertView.startAnimation(AnimationUtils.loadAnimation(DiscussionActivity.this, R.anim.scale_in));
             }
+            convertView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override public boolean onLongClick(View v) {
+                    if (!"system".equals(m.type)) showMessageActions(m);
+                    return true;
+                }
+            });
             switch (type) {
                 case TYPE_ME_PHOTO:
                 case TYPE_OTHER_PHOTO: {
@@ -765,12 +1196,51 @@ public class DiscussionActivity extends Activity {
                     break;
                 }
                 default: {
-                    TextView bubble = convertView.findViewById(R.id.msg_bubble);
+                    TextView bubble = convertView.findViewById(R.id.bubble_text);
                     bubble.setText(display(m));
                     break;
                 }
             }
+            bindCommon(convertView, m);
             return convertView;
+        }
+    }
+
+    private void bindCommon(View root, Message m) {
+        TextView reply = root.findViewById(R.id.reply_preview);
+        if (reply != null) {
+            Message quoted = m.replyToId != null ? msgMap.get(m.replyToId) : null;
+            if (quoted != null && !quoted.isDeleted()) {
+                reply.setText(preview(quoted));
+                reply.setVisibility(View.VISIBLE);
+            } else {
+                reply.setVisibility(View.GONE);
+            }
+        }
+        TextView meta = root.findViewById(R.id.msg_meta);
+        if (meta != null) {
+            if (m.edited > 0L && !m.isDeleted()) {
+                meta.setText(R.string.edited_marker);
+                meta.setVisibility(View.VISIBLE);
+            } else {
+                meta.setVisibility(View.GONE);
+            }
+        }
+        TextView st = root.findViewById(R.id.msg_status);
+        if (st != null && isMine(m)) {
+            String stTxt;
+            if ("read".equals(m.status)) {
+                stTxt = "\u2713\u2713";
+                st.setTextColor(getResources().getColor(R.color.secondary));
+            } else if ("delivered".equals(m.status)) {
+                stTxt = "\u2713\u2713";
+            } else {
+                stTxt = "\u2713";
+            }
+            st.setText(stTxt);
+            st.setVisibility(View.VISIBLE);
+        } else if (st != null) {
+            st.setVisibility(View.GONE);
         }
     }
 }

@@ -15,6 +15,7 @@ import com.lightchat.App;
 import com.lightchat.R;
 import com.lightchat.SessionStore;
 import com.lightchat.ui.ConversationsActivity;
+import com.lightchat.ui.DiscussionActivity;
 import com.lightchat.util.Json;
 
 import java.util.Map;
@@ -77,6 +78,7 @@ public final class RealtimeService extends Service implements Realtime.Listener 
             String type = (String) msg.get("type");
             String body = (String) msg.get("body");
             if (convId == null) return;
+            if (DiscussionActivity.isMuted(this, convId)) return;
             notifyMessage(convId, senderId, type, body);
         } catch (Exception ignored) {
         }
