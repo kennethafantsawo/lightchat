@@ -4,6 +4,10 @@
 
     <string name="switch_to_register">Créer un compte</string>
     <string name="switch_to_login">Se connecter</string>
+    <string name="login_submit">Se connecter</string>
+    <string name="register_submit">Créer le compte</string>
+    <string name="status_user_invalid">Pseudo invalide : 3-20 caractères en minuscules (a-z, 0-9, point, _).</string>
+    <string name="status_pass_short">Mot de passe trop court (6 caractères min).</string>
     <string name="status_login">Connexion…</string>
     <string name="status_register">Création du compte…</string>
     <string name="status_missing">Renseigne pseudo et mot de passe.</string>
@@ -109,4 +113,15 @@
     <string name="settings_status_perm">Autorisation d\'écriture requise.</string>
     <string name="settings_user_line">Pseudo : %1$s</string>
     <string name="settings_id_line">ID : %1$s</string>
+
+    <string-array name="gender_labels">
+        <item>Homme</item>
+        <item>Femme</item>
+        <item>Autre</item>
+    </string-array>
+    <string-array name="gender_values">
+        <item>male</item>
+        <item>female</item>
+        <item>other</item>
+    </string-array>
 </resources>
