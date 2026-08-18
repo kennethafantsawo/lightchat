@@ -8,6 +8,8 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.AudioAttributes;
+import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
 
@@ -121,6 +123,7 @@ public final class RealtimeService extends Service implements Realtime.Listener 
         b.setSmallIcon(R.drawable.ic_notif)
                 .setContentTitle(titleFor(convId))
                 .setContentText(contentFor(type, body))
+                .setSound(notifUri())
                 .setAutoCancel(true)
                 .setContentIntent(pi)
                 .setPriority(Notification.PRIORITY_HIGH);
@@ -142,12 +145,21 @@ public final class RealtimeService extends Service implements Realtime.Listener 
         return b.build();
     }
 
+    private Uri notifUri() {
+        return Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.notif_chime);
+    }
+
     private void ensureChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
         NotificationChannel msgs = new NotificationChannel(CHANNEL_MSGS,
                 getString(R.string.notif_channel_messages), NotificationManager.IMPORTANCE_HIGH);
+        AudioAttributes attrs = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+        msgs.setSound(notifUri(), attrs);
         NotificationChannel svc = new NotificationChannel(CHANNEL_SVC,
                 getString(R.string.notif_channel_service), NotificationManager.IMPORTANCE_MIN);
         nm.createNotificationChannel(msgs);

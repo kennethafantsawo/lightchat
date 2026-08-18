@@ -157,6 +157,16 @@
                 android:textColor="@color/on_surface" />
 
             <TextView
+                android:id="@+id/btn_sticker"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="6dp"
+                android:gravity="center"
+                android:background="@drawable/bg_chip_ripple"
+                android:text="@string/btn_sticker"
+                android:textColor="@color/on_surface" />
+
+            <TextView
                 android:id="@+id/btn_mic"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
@@ -202,6 +212,22 @@
 
         <LinearLayout
             android:id="@+id/emoji_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="4dp" />
+    </HorizontalScrollView>
+
+    <HorizontalScrollView
+        android:id="@+id/sticker_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:scrollbars="none"
+        android:background="@color/surface_container_low">
+
+        <LinearLayout
+            android:id="@+id/sticker_container"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"

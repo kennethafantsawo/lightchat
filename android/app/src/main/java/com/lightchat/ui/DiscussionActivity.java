@@ -163,6 +163,9 @@ public class DiscussionActivity extends Activity {
         findViewById(R.id.btn_emoji).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { toggleEmojiRow(); }
         });
+        findViewById(R.id.btn_sticker).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { toggleStickerRow(); }
+        });
         findViewById(R.id.btn_mic).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { toggleMic(); }
         });
@@ -189,7 +192,100 @@ public class DiscussionActivity extends Activity {
             });
             emojiRow.addView(t);
         }
+        buildStickerRow();
         refreshMuteButton();
+    }
+
+    private void buildStickerRow() {
+        try {
+            String[] names = getAssets().list("stickers");
+            if (names == null || names.length == 0) {
+                findViewById(R.id.btn_sticker).setVisibility(View.GONE);
+                return;
+            }
+            LinearLayout row = findViewById(R.id.sticker_container);
+            int thumb = dp(64);
+            for (int i = 0; i < names.length; i++) {
+                final String name = names[i];
+                Bitmap bmp = decodeStickerThumb(name);
+                if (bmp == null) continue;
+                ImageView iv = new ImageView(this);
+                iv.setImageBitmap(bmp);
+                iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                iv.setPadding(dp(4), dp(4), dp(4), dp(4));
+                iv.setLayoutParams(new LinearLayout.LayoutParams(thumb, thumb));
+                iv.setContentDescription(name);
+                iv.setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(View v) { sendSticker(name); }
+                });
+                row.addView(iv);
+            }
+        } catch (IOException e) {
+            findViewById(R.id.btn_sticker).setVisibility(View.GONE);
+        }
+    }
+
+    private Bitmap decodeStickerThumb(String name) {
+        try {
+            java.io.InputStream in = getAssets().open("stickers/" + name);
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeStream(in, null, bounds);
+            in.close();
+            int sample = 1;
+            while (Math.max(bounds.outWidth, bounds.outHeight) / sample > 160) sample *= 2;
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inSampleSize = sample;
+            in = getAssets().open("stickers/" + name);
+            try {
+                return BitmapFactory.decodeStream(in, null, o);
+            } finally {
+                in.close();
+            }
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private void sendSticker(final String name) {
+        final String token = session.token();
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() {
+                try {
+                    java.io.InputStream in = getAssets().open("stickers/" + name);
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                    byte[] buf = new byte[16384];
+                    int n;
+                    try {
+                        while ((n = in.read(buf)) != -1) bos.write(buf, 0, n);
+                    } finally {
+                        in.close();
+                    }
+                    ApiClient.ApiResponse up = ApiClient.upload("/api/upload?filename=" + name, bos.toByteArray(), "image/png", token);
+                    if (up.status != 200) return false;
+                    Map<String, Object> u = Json.parseObject(up.body);
+                    String key = (String) u.get("key");
+                    if (key == null || key.isEmpty()) return false;
+                    String json = "{\"conv_id\":\"" + esc(convId) + "\",\"type\":\"sticker\",\"media_key\":\""
+                            + esc(key) + "\",\"mime\":\"image/png\"}";
+                    ApiClient.ApiResponse s = ApiClient.call("POST", "/api/send", json, token);
+                    return s.status == 200;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                if (ok != null && ok) {
+                    status.setVisibility(View.GONE);
+                    findViewById(R.id.sticker_row).setVisibility(View.GONE);
+                    handler.post(pollLoop);
+                } else {
+                    status.setVisibility(View.VISIBLE);
+                    status.setText(R.string.sticker_send_err);
+                }
+            }
+        });
     }
 
     @Override
@@ -531,7 +627,16 @@ public class DiscussionActivity extends Activity {
 
     private void toggleEmojiRow() {
         View row = findViewById(R.id.emoji_row);
-        row.setVisibility(row.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+        boolean show = row.getVisibility() != View.VISIBLE;
+        row.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show) findViewById(R.id.sticker_row).setVisibility(View.GONE);
+    }
+
+    private void toggleStickerRow() {
+        View row = findViewById(R.id.sticker_row);
+        boolean show = row.getVisibility() != View.VISIBLE;
+        row.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show) findViewById(R.id.emoji_row).setVisibility(View.GONE);
     }
 
     private void insertEmoji(String e) {

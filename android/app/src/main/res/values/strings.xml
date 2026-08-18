@@ -37,6 +37,8 @@
     <string name="btn_plus">+</string>
     <string name="btn_emoji">☺</string>
     <string name="btn_mic">Enr</string>
+    <string name="btn_sticker">🖼</string>
+    <string name="sticker_send_err">Envoi du sticker impossible.</string>
     <string name="rec_stop">Stop</string>
     <string name="send_photo_error">Envoi du média impossible.</string>
     <string name="media_err">Média indisponible.</string>
