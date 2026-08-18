@@ -1,5 +1,5 @@
 import { makeId } from "./auth";
-import { insertMessage } from "./db";
+import { insertMessage, getMessage, convMemberIds } from "./db";
 import type { Env } from "./index";
 import type { Message, MessageType } from "./types";
 
@@ -11,13 +11,20 @@ export function canAccessConv(env: Env, convId: string, userId: string): Promise
 export const MESSAGE_TYPES: MessageType[] = ["text", "emoji", "sticker", "photo", "video", "audio", "system"];
 
 export async function sendMessage(env: Env, senderId: string, input: {
-  conv_id: string; type?: string; body?: string; media_key?: string; mime?: string; duration_ms?: number;
+  conv_id: string; type?: string; body?: string; media_key?: string; mime?: string; duration_ms?: number; reply_to_id?: string;
 }) {
   const can = await canAccessConv(env, input.conv_id, senderId);
   if (!can) return { error: "Conversation inaccessible." };
   const type = (input.type ?? "text") as MessageType;
   if (!MESSAGE_TYPES.includes(type)) return { error: "Type de message invalide." };
   if (type === "text" && !String(input.body ?? "").trim()) return { error: "Message vide." };
+  const replyToId = input.reply_to_id || null;
+  if (replyToId) {
+    const target = await getMessage(env, replyToId);
+    if (!target || target.conv_id !== input.conv_id || target.deleted) {
+      return { error: "Message cité introuvable." };
+    }
+  }
   const msg: Message = {
     id: makeId(),
     conv_id: input.conv_id,
@@ -27,6 +34,9 @@ export async function sendMessage(env: Env, senderId: string, input: {
     media_key: input.media_key ?? null,
     mime: input.mime ?? null,
     duration_ms: input.duration_ms ?? null,
+    reply_to_id: replyToId,
+    edited: 0,
+    deleted: 0,
     status: "sent",
     created_at: Date.now(),
   };
@@ -35,9 +45,35 @@ export async function sendMessage(env: Env, senderId: string, input: {
   return { ok: true, message: msg };
 }
 
+export async function editMessage(env: Env, userId: string, messageId: string, newBody: string): Promise<{ error?: string; message?: Message }> {
+  const text = String(newBody ?? "").trim();
+  if (!text) return { error: "Message vide." };
+  const msg = await getMessage(env, messageId) as unknown as Message | null;
+  if (!msg) return { error: "Message introuvable." };
+  if (msg.sender_id !== userId) return { error: "Seul l'auteur peut modifier." };
+  if (msg.deleted) return { error: "Message supprimé." };
+  if (msg.type !== "text" && msg.type !== "emoji") return { error: "Seuls les textes sont modifiables." };
+  const edited = Date.now();
+  await env.DB.prepare(`UPDATE messages SET body = ?, edited = ? WHERE id = ?`)
+    .bind(text, edited, messageId).run();
+  const updated = await getMessage(env, messageId) as unknown as Message | null;
+  await pushToConv(env, msg.conv_id, { type: "message_edit", conv_id: msg.conv_id, message: updated });
+  return { message: updated as Message };
+}
+
+export async function deleteMessage(env: Env, userId: string, messageId: string): Promise<{ error?: string; ok?: boolean }> {
+  const msg = await getMessage(env, messageId) as unknown as Message | null;
+  if (!msg) return { error: "Message introuvable." };
+  if (msg.deleted) return { ok: true };
+  const member = await canAccessConv(env, msg.conv_id, userId);
+  if (!member) return { error: "Non autorisé." };
+  await env.DB.prepare(`UPDATE messages SET deleted = 1 WHERE id = ?`).bind(messageId).run();
+  await pushToConv(env, msg.conv_id, { type: "message_delete", conv_id: msg.conv_id, message_id: messageId });
+  return { ok: true };
+}
+
 async function pushToConv(env: Env, convId: string, payload: unknown) {
-  const members = await env.DB.prepare(`SELECT user_id FROM conversation_members WHERE conv_id = ?`).bind(convId).all();
-  const userIds = (members.results as any[]).map((m) => m.user_id);
+  const userIds = await convMemberIds(env, convId);
   const globalId = env.CHAT_ROOM.idFromName("global");
   const globalStub = env.CHAT_ROOM.get(globalId);
   // Contrat DO (Task 6) : { userIds, payload } — le DO filtre les destinataires.

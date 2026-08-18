@@ -1,8 +1,8 @@
 import { createUser, createSession, getUserBySession, publicUser, verifyPassword } from "./auth";
 import { searchUser, sendFriendRequest, respondFriendRequest, dmId, myFriends, pendingInvites } from "./friends";
 import { ChatRoom } from "./ChatRoom";
-import { fetchMessages, fetchMessagesSince, markMessagesDelivered } from "./db";
-import { sendMessage, myConversations, canAccessConv } from "./messages";
+import { fetchMessages, fetchMessagesSince, markMessagesDelivered, markMessagesRead, convMemberIds } from "./db";
+import { sendMessage, myConversations, canAccessConv, editMessage, deleteMessage } from "./messages";
 import { uploadMedia, readMedia, canAccessMedia, purgeExpired } from "./media";
 import { createGroup, addGroupMember, removeGroupMember, groupInfo } from "./groups";
 import type { User } from "./types";
@@ -139,6 +139,36 @@ export default {
       const list = await fetchMessages(env, convId, beforeParam ? Number(beforeParam) : null);
       await markMessagesDelivered(env, convId, Date.now(), user.id);
       return json({ messages: list.reverse() });
+    }
+
+    if (path === "/api/messages/read" && req.method === "POST") {
+      const b = await readJson(req);
+      const convId = String(b?.conv_id ?? "");
+      const can = await canAccessConv(env, convId, user.id);
+      if (!can) return json({ error: "Accès refusé." }, 403);
+      const upTo = Date.now();
+      await markMessagesRead(env, convId, upTo, user.id);
+      const ids = await convMemberIds(env, convId);
+      for (const uid of ids) {
+        if (uid !== user.id) {
+          await pushToUser(env, uid, { type: "read", conv_id: convId, user_id: user.id, up_to: upTo });
+        }
+      }
+      return json({ ok: true });
+    }
+
+    if (path === "/api/messages/edit" && req.method === "POST") {
+      const b = await readJson(req);
+      const res = await editMessage(env, user.id, String(b?.message_id ?? ""), String(b?.body ?? ""));
+      if (res.error) return json({ error: res.error }, 400);
+      return json({ ok: true, message: res.message });
+    }
+
+    if (path === "/api/messages/delete" && req.method === "POST") {
+      const b = await readJson(req);
+      const res = await deleteMessage(env, user.id, String(b?.message_id ?? ""));
+      if (res.error) return json({ error: res.error }, 400);
+      return json({ ok: true });
     }
 
     if (path === "/api/upload" && req.method === "POST") {

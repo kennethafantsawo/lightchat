@@ -32,6 +32,9 @@ export interface Message {
   media_key: string | null;
   mime: string | null;
   duration_ms: number | null;
+  reply_to_id: string | null;
+  edited: number;
+  deleted: number;
   status: "sent" | "delivered" | "read";
   created_at: number;
 }
