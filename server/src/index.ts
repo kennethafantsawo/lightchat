@@ -1,11 +1,12 @@
 import { createUser, createSession, getUserBySession, publicUser, verifyPassword } from "./auth";
 import { searchUser, sendFriendRequest, respondFriendRequest, dmId, myFriends, pendingInvites } from "./friends";
 import { ChatRoom } from "./ChatRoom";
-import { fetchMessages, fetchMessagesSince, markMessagesDelivered, markMessagesRead, convMemberIds } from "./db";
+import { fetchMessages, fetchMessagesSince, markMessagesDelivered, markMessagesRead, convMemberIds, getMessage } from "./db";
 import { sendMessage, myConversations, canAccessConv, editMessage, deleteMessage } from "./messages";
 import { uploadMedia, readMedia, canAccessMedia, purgeExpired } from "./media";
 import { createGroup, addGroupMember, removeGroupMember, groupInfo } from "./groups";
-import type { User } from "./types";
+import { togglePin, toggleReaction, reactionsForMessages, saveDraft, getDraft } from "./extras";
+import type { User, Message } from "./types";
 
 export interface Env {
   DB: D1Database;
@@ -131,14 +132,19 @@ export default {
       const since = Number(url.searchParams.get("since") || 0);
       const can = await canAccessConv(env, convId, user.id);
       if (!can) return json({ error: "Accès refusé." }, 403);
+      let list: Message[];
       if (since > 0) {
-        const list = await fetchMessagesSince(env, convId, since);
+        list = await fetchMessagesSince(env, convId, since);
         await markMessagesDelivered(env, convId, Date.now(), user.id);
-        return json({ messages: list });
+      } else {
+        list = await fetchMessages(env, convId, beforeParam ? Number(beforeParam) : null);
+        await markMessagesDelivered(env, convId, Date.now(), user.id);
+        list = list.reverse();
       }
-      const list = await fetchMessages(env, convId, beforeParam ? Number(beforeParam) : null);
-      await markMessagesDelivered(env, convId, Date.now(), user.id);
-      return json({ messages: list.reverse() });
+      const ids = list.map((m) => m.id);
+      const reactions = await reactionsForMessages(env, ids);
+      const out = list.map((m) => ({ ...m, reactions: reactions.get(m.id) || [] }));
+      return json({ messages: out });
     }
 
     if (path === "/api/messages/read" && req.method === "POST") {
@@ -168,6 +174,66 @@ export default {
       const b = await readJson(req);
       const res = await deleteMessage(env, user.id, String(b?.message_id ?? ""));
       if (res.error) return json({ error: res.error }, 400);
+      return json({ ok: true });
+    }
+
+    if (path === "/api/messages/pin" && req.method === "POST") {
+      const b = await readJson(req);
+      const convId = String(b?.conv_id ?? "");
+      const can = await canAccessConv(env, convId, user.id);
+      if (!can) return json({ error: "Accès refusé." }, 403);
+      const res = await togglePin(env, convId, String(b?.message_id ?? ""), user.id, Boolean(b?.pinned));
+      if (res.error) return json({ error: res.error }, 400);
+      const ids = await convMemberIds(env, convId);
+      for (const uid of ids) {
+        if (uid !== user.id) {
+          await pushToUser(env, uid, { type: "message_pin", conv_id: convId, message: res.message });
+        }
+      }
+      return json({ ok: true, message: res.message });
+    }
+
+    if (path === "/api/messages/reaction" && req.method === "POST") {
+      const b = await readJson(req);
+      const res = await toggleReaction(env, String(b?.message_id ?? ""), user.id, String(b?.emoji ?? ""));
+      if (res.error) return json({ error: res.error }, 400);
+      const msg = await getMessage(env, String(b?.message_id ?? "")) as unknown as Message | null;
+      if (msg) {
+        const ids = await convMemberIds(env, msg.conv_id);
+        for (const uid of ids) {
+          if (uid !== user.id) {
+            await pushToUser(env, uid, { type: "message_reaction", conv_id: msg.conv_id, message_id: msg.id, reactions: res.reactions });
+          }
+        }
+      }
+      return json({ ok: true, reactions: res.reactions });
+    }
+
+    if (path === "/api/drafts" && req.method === "POST") {
+      const b = await readJson(req);
+      const res = await saveDraft(env, user.id, String(b?.conv_id ?? ""), String(b?.body ?? ""));
+      if (res.error) return json({ error: res.error }, 400);
+      return json(res);
+    }
+
+    if (path === "/api/drafts" && req.method === "GET") {
+      const convId = url.searchParams.get("conv_id") || "";
+      const res = await getDraft(env, user.id, convId);
+      if (res.error) return json({ error: res.error }, 400);
+      return json(res);
+    }
+
+    if (path === "/api/typing" && req.method === "POST") {
+      const b = await readJson(req);
+      const convId = String(b?.conv_id ?? "");
+      const can = await canAccessConv(env, convId, user.id);
+      if (!can) return json({ error: "Accès refusé." }, 403);
+      const ids = await convMemberIds(env, convId);
+      for (const uid of ids) {
+        if (uid !== user.id) {
+          await pushToUser(env, uid, { type: "typing", conv_id: convId, user_id: user.id, typing: Boolean(b?.typing) });
+        }
+      }
       return json({ ok: true });
     }
 

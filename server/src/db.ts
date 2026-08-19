@@ -1,5 +1,10 @@
 import type { Env } from "./index";
-import type { Message } from "./types";
+import type { Message, MessageReaction } from "./types";
+import { canAccessConv } from "./messages";
+
+export async function getMessage(env: Env, messageId: string) {
+  return await env.DB.prepare(`SELECT * FROM messages WHERE id = ?`).bind(messageId).first();
+}
 
 export function getDb(env: Env) {
   return env.DB;
@@ -7,11 +12,11 @@ export function getDb(env: Env) {
 
 export async function insertMessage(env: Env, m: Message) {
   await env.DB.prepare(
-    `INSERT INTO messages (id, conv_id, sender_id, type, body, media_key, mime, duration_ms, reply_to_id, edited, deleted, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO messages (id, conv_id, sender_id, type, body, media_key, mime, duration_ms, reply_to_id, edited, deleted, pinned, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(m.id, m.conv_id, m.sender_id, m.type, m.body, m.media_key, m.mime, m.duration_ms,
-      m.reply_to_id ?? null, m.edited ?? 0, m.deleted ?? 0, m.status, m.created_at)
+      m.reply_to_id ?? null, m.edited ?? 0, m.deleted ?? 0, m.pinned ?? 0, m.status, m.created_at)
     .run();
 }
 
@@ -43,10 +48,6 @@ export async function markMessagesRead(env: Env, convId: string, upTo: number, u
   await env.DB.prepare(
     `UPDATE messages SET status = 'read' WHERE conv_id = ? AND created_at <= ? AND status IN ('sent','delivered') AND sender_id != ?`
   ).bind(convId, upTo, userId).run();
-}
-
-export async function getMessage(env: Env, messageId: string) {
-  return await env.DB.prepare(`SELECT * FROM messages WHERE id = ?`).bind(messageId).first();
 }
 
 export async function convMemberIds(env: Env, convId: string): Promise<string[]> {

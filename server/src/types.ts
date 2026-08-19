@@ -35,8 +35,21 @@ export interface Message {
   reply_to_id: string | null;
   edited: number;
   deleted: number;
+  pinned: number;
   status: "sent" | "delivered" | "read";
   created_at: number;
+}
+
+export interface MessageReaction {
+  message_id: string;
+  user_id: string;
+  emoji: string;
+}
+
+export interface MessageReaction {
+  message_id: string;
+  user_id: string;
+  emoji: string;
 }
 
 export interface MediaInfo {

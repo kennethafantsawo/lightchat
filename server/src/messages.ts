@@ -37,6 +37,7 @@ export async function sendMessage(env: Env, senderId: string, input: {
     reply_to_id: replyToId,
     edited: 0,
     deleted: 0,
+    pinned: 0,
     status: "sent",
     created_at: Date.now(),
   };
@@ -90,7 +91,9 @@ export async function myConversations(env: Env, userId: string) {
     `SELECT cm.conv_id, c.kind, c.created_at,
             (SELECT m.body FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_body,
             (SELECT m.created_at FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_at,
-            (SELECT m.type FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_type
+            (SELECT m.type FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_type,
+            (SELECT m.id FROM messages m WHERE m.conv_id = c.id AND m.pinned = 1 ORDER BY m.created_at DESC LIMIT 1) as pinned_id,
+            (SELECT m.body FROM messages m WHERE m.conv_id = c.id AND m.pinned = 1 ORDER BY m.created_at DESC LIMIT 1) as pinned_body
      FROM conversation_members cm JOIN conversations c ON c.id = cm.conv_id
      WHERE cm.user_id = ?
      ORDER BY COALESCE((SELECT m.created_at FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1), c.created_at) DESC`
