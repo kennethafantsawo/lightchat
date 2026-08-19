@@ -16,6 +16,7 @@ import com.lightchat.SessionStore;
 import com.lightchat.net.ApiClient;
 import com.lightchat.util.Async;
 import com.lightchat.util.Json;
+import com.lightchat.util.Skin;
 
 import java.util.Map;
 
@@ -35,6 +36,7 @@ public class LoginActivity extends Activity {
             return;
         }
         setContentView(R.layout.activity_login);
+        Skin.apply(this);
 
         eUser = findViewById(R.id.input_username);
         ePass = findViewById(R.id.input_password);
@@ -50,6 +52,8 @@ public class LoginActivity extends Activity {
         Button login = findViewById(R.id.btn_login);
         TextView toggle = findViewById(R.id.txt_toggle_mode);
 
+        applyGlass();
+
         login.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { attempt(); }
         });
@@ -58,6 +62,18 @@ public class LoginActivity extends Activity {
         });
         toggleMode();
         getWindow().getDecorView().startAnimation(AnimationUtils.loadAnimation(this, R.anim.fade_in));
+    }
+
+    private void applyGlass() {
+        EditText[] inputs = new EditText[]{eUser, ePass, eFirst, eLast, eAge};
+        for (EditText e : inputs) {
+            if (e != null) e.setBackground(Skin.pill_input(18));
+        }
+        findViewById(R.id.login_card).setBackground(Skin.glassCard(26));
+        Button b = findViewById(R.id.btn_login);
+        b.setBackground(Skin.pill_primary(26));
+        TextView t = findViewById(R.id.txt_toggle_mode);
+        t.setTextColor(Skin.palette().secondary);
     }
 
     private void toggleMode() {
@@ -169,6 +185,7 @@ public class LoginActivity extends Activity {
 
     private void goConversations() {
         startActivity(new Intent(this, ConversationsActivity.class));
+        overridePendingTransition(R.anim.act_fwd_in, R.anim.act_fwd_out);
         finish();
     }
 }

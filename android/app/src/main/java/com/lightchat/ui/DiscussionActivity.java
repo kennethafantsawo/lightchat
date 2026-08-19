@@ -41,6 +41,7 @@ import com.lightchat.net.Realtime;
 import com.lightchat.util.Async;
 import com.lightchat.util.Json;
 import com.lightchat.util.MediaStore;
+import com.lightchat.util.Skin;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -129,6 +130,7 @@ public class DiscussionActivity extends Activity {
             return;
         }
         setContentView(R.layout.activity_discussion);
+        Skin.apply(this);
 
         TextView title = findViewById(R.id.txt_title);
         String passed = getIntent().getStringExtra("title");
@@ -151,11 +153,13 @@ public class DiscussionActivity extends Activity {
             }
         });
 
+        applyGlass();
+
         send.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { sendMessage(); }
         });
         findViewById(R.id.btn_back).setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) { finish(); }
+            @Override public void onClick(View v) { onBackPressed(); }
         });
         findViewById(R.id.btn_plus).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { chooseMedia(); }
@@ -186,7 +190,7 @@ public class DiscussionActivity extends Activity {
             t.setText(e);
             t.setTextSize(20);
             t.setPadding(dp(8), dp(4), dp(8), dp(4));
-            t.setTextColor(getResources().getColor(R.color.on_surface));
+            t.setTextColor(Skin.palette().onSurface);
             t.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { insertEmoji(e); }
             });
@@ -194,6 +198,42 @@ public class DiscussionActivity extends Activity {
         }
         buildStickerRow();
         refreshMuteButton();
+    }
+
+    private void applyGlass() {
+        findViewById(R.id.header).setBackground(Skin.glassHeader(dp(24)));
+        findViewById(R.id.input_bar).setBackground(Skin.glassCard(dp(24)));
+        TextView title = findViewById(R.id.txt_title);
+        title.setTextColor(Skin.palette().onSurface);
+        muteBtn.setTextColor(Skin.palette().onSurface);
+        findViewById(R.id.btn_search_disc).setBackground(Skin.pill_container(dp(18)));
+        muteBtn.setBackground(Skin.pill_container(dp(18)));
+        EditText in = findViewById(R.id.input_msg);
+        in.setBackground(Skin.pill_input(20));
+        Button send = findViewById(R.id.btn_send);
+        send.setBackground(Skin.pill_primary(20));
+        send.setTextColor(Skin.palette().onPrimary);
+        LinearLayout editLabelL = (LinearLayout) editBar;
+        editLabelL.setBackground(Skin.glassHeader(dp(14)));
+        editLabel.setTextColor(Skin.palette().onSurface);
+        findViewById(R.id.edit_cancel).setBackground(Skin.pill_container(dp(18)));
+        ((TextView) findViewById(R.id.edit_cancel)).setTextColor(Skin.palette().onSurface);
+        ((TextView) findViewById(R.id.txt_empty)).setTextColor(Skin.palette().onSurfaceVariant);
+        int chipColor = Skin.palette().onSurface;
+        ((TextView) findViewById(R.id.btn_plus)).setTextColor(chipColor);
+        ((TextView) findViewById(R.id.btn_emoji)).setTextColor(chipColor);
+        ((TextView) findViewById(R.id.btn_sticker)).setTextColor(chipColor);
+        ((TextView) findViewById(R.id.btn_mic)).setTextColor(chipColor);
+        findViewById(R.id.btn_plus).setBackground(Skin.pill_container(dp(18)));
+        findViewById(R.id.btn_emoji).setBackground(Skin.pill_container(dp(18)));
+        findViewById(R.id.btn_sticker).setBackground(Skin.pill_container(dp(18)));
+        findViewById(R.id.btn_mic).setBackground(Skin.pill_container(dp(18)));
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        overridePendingTransition(R.anim.act_back_in, R.anim.act_back_out);
     }
 
     private void buildStickerRow() {
@@ -1282,6 +1322,7 @@ public class DiscussionActivity extends Activity {
                 case TYPE_OTHER_PHOTO: {
                     final boolean isVideo = "video".equals(m.type);
                     ImageView photo = convertView.findViewById(R.id.photo);
+                    photo.setBackground(Skin.mediaRounded(isMine(m) ? Skin.palette().bubbleMine : Skin.palette().bubbleOther));
                     if (isVideo) {
                         photo.setClickable(true);
                         photo.setFocusable(true);
@@ -1297,7 +1338,11 @@ public class DiscussionActivity extends Activity {
                 }
                 case TYPE_ME_AUDIO:
                 case TYPE_OTHER_AUDIO: {
-                    bindAudio(convertView.findViewById(R.id.btn_audio), m);
+                    TextView ab = convertView.findViewById(R.id.btn_audio);
+                    boolean mineA = type == TYPE_ME_AUDIO;
+                    ab.setBackground(Skin.bubble(mineA));
+                    ab.setTextColor(mineA ? Skin.palette().onPrimary : Skin.palette().onSurface);
+                    bindAudio(ab, m);
                     break;
                 }
                 default: {
@@ -1306,8 +1351,25 @@ public class DiscussionActivity extends Activity {
                     break;
                 }
             }
+            applyBubble(convertView, type);
             bindCommon(convertView, m);
             return convertView;
+        }
+    }
+
+    private void applyBubble(View root, int type) {
+        if (type == MessageAdapter.TYPE_SYSTEM) return;
+        View plate = root.findViewById(R.id.msg_bubble);
+        if (plate != null) {
+            boolean mine = type == MessageAdapter.TYPE_ME_TEXT
+                    || type == MessageAdapter.TYPE_ME_PHOTO
+                    || type == MessageAdapter.TYPE_ME_AUDIO;
+            plate.setBackground(Skin.bubble(mine));
+        }
+        TextView text = root.findViewById(R.id.bubble_text);
+        if (text != null) {
+            boolean mine = type == MessageAdapter.TYPE_ME_TEXT;
+            text.setTextColor(mine ? Skin.palette().onPrimary : Skin.palette().onSurface);
         }
     }
 
@@ -1318,12 +1380,14 @@ public class DiscussionActivity extends Activity {
             if (quoted != null && !quoted.isDeleted()) {
                 reply.setText(preview(quoted));
                 reply.setVisibility(View.VISIBLE);
+                reply.setTextColor(isMine(m) ? Skin.palette().onSurfaceVariant : Skin.palette().onSurface);
             } else {
                 reply.setVisibility(View.GONE);
             }
         }
         TextView meta = root.findViewById(R.id.msg_meta);
         if (meta != null) {
+            meta.setTextColor(Skin.palette().onSurfaceVariant);
             if (m.edited > 0L && !m.isDeleted()) {
                 meta.setText(R.string.edited_marker);
                 meta.setVisibility(View.VISIBLE);
@@ -1336,11 +1400,13 @@ public class DiscussionActivity extends Activity {
             String stTxt;
             if ("read".equals(m.status)) {
                 stTxt = "\u2713\u2713";
-                st.setTextColor(getResources().getColor(R.color.secondary));
+                st.setTextColor(Skin.palette().secondary);
             } else if ("delivered".equals(m.status)) {
                 stTxt = "\u2713\u2713";
+                st.setTextColor(Skin.palette().onSurfaceVariant);
             } else {
                 stTxt = "\u2713";
+                st.setTextColor(Skin.palette().onSurfaceVariant);
             }
             st.setText(stTxt);
             st.setVisibility(View.VISIBLE);

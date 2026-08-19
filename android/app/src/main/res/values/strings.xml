@@ -19,6 +19,13 @@
     <string name="search_label">Recherche</string>
     <string name="settings_label">Paramètres</string>
     <string name="settings_placeholder">Paramètres (disponible en Phase 6).</string>
+    <string name="theme_label">Thème</string>
+    <string name="theme_indigo">Indigo</string>
+    <string name="theme_midnight">Minuit</string>
+    <string name="theme_liquid">Verre</string>
+    <string name="theme_nebula">Nébuleuse</string>
+    <string name="theme_aurora">Aurore</string>
+    <string name="theme_applied">Thème appliqué.</string>
 
     <string name="conv_empty">Aucune conversation pour l\'instant.</string>
     <string name="conv_error">Impossible de charger les conversations.</string>

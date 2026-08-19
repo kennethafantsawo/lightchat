@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.app.Application;
 import android.os.Bundle;
 
+import com.lightchat.util.Skin;
+
 public final class App extends Application {
     private static int active = 0;
 
@@ -14,6 +16,7 @@ public final class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        Skin.load(this);
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override public void onActivityStarted(Activity a) { active++; }
             @Override public void onActivityStopped(Activity a) { if (active > 0) active--; }

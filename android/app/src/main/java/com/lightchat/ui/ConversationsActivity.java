@@ -1,11 +1,13 @@
 package com.lightchat.ui;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -19,6 +21,7 @@ import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -32,6 +35,7 @@ import com.lightchat.util.Async;
 import com.lightchat.util.Fmt;
 import com.lightchat.util.Json;
 import com.lightchat.util.MediaStore;
+import com.lightchat.util.Skin;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -99,6 +103,7 @@ public class ConversationsActivity extends Activity {
             return;
         }
         setContentView(R.layout.activity_conversations);
+        Skin.apply(this);
 
         content = findViewById(R.id.content);
         chatFrame = findViewById(R.id.chat_frame);
@@ -115,9 +120,15 @@ public class ConversationsActivity extends Activity {
                 i.putExtra("conv_id", c.convId);
                 i.putExtra("title", titleFor(c));
                 startActivity(i);
+                overridePendingTransition(R.anim.act_fwd_in, R.anim.act_fwd_out);
             }
         });
 
+        applyShellStyle();
+
+        findViewById(R.id.btn_new_chat).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { pickNewChat(); }
+        });
         findViewById(R.id.tab_chats).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 showTab(chatFrame);
@@ -140,7 +151,9 @@ public class ConversationsActivity extends Activity {
                 RealtimeService.stop(ConversationsActivity.this);
                 Realtime.get().stop();
                 session.clear();
-                startActivity(new Intent(ConversationsActivity.this, LoginActivity.class));
+                Intent i = new Intent(ConversationsActivity.this, LoginActivity.class);
+                startActivity(i);
+                overridePendingTransition(R.anim.act_back_in, R.anim.act_back_out);
                 finish();
             }
         });
@@ -150,6 +163,37 @@ public class ConversationsActivity extends Activity {
 
         RealtimeService.start(this);
         maybeRequestNotifyPermission();
+    }
+
+    private void applyShellStyle() {
+        findViewById(R.id.header).setBackground(Skin.glassHeader(dp(24)));
+        findViewById(R.id.bottom_nav).setBackground(Skin.glassPill(dp(30)));
+        TextView fab = findViewById(R.id.btn_new_chat);
+        fab.setBackground(Skin.pill_primary(dp(29)));
+        fab.setTextColor(Skin.palette().onPrimary);
+        TextView logout = findViewById(R.id.txt_logout);
+        logout.setTextColor(Skin.palette().secondary);
+    }
+
+    private void pickNewChat() {
+        if (friendItems.isEmpty()) {
+            showStatus(getString(R.string.search_prompt));
+            return;
+        }
+        final String[] labels = new String[friendItems.size()];
+        for (int i = 0; i < friendItems.size(); i++) labels[i] = fullName(friendItems.get(i));
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.msg_forward_to)
+            .setItems(labels, new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int which) {
+                    Map<String, Object> m = friendItems.get(which);
+                    String friendId = (String) m.get("id");
+                    String friendName = fullName(m);
+                    if (friendId != null) openWithFriend(friendId, friendName);
+                }
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
     }
 
     private void maybeRequestNotifyPermission() {
@@ -186,7 +230,7 @@ public class ConversationsActivity extends Activity {
     private void showTab(View target) {
         content.removeAllViews();
         content.addView(target);
-        target.startAnimation(AnimationUtils.loadAnimation(this, R.anim.fade_in));
+        target.startAnimation(AnimationUtils.loadAnimation(this, R.anim.act_fwd_in));
     }
 
     private void showSettingsTab(View tab) {
@@ -205,9 +249,66 @@ public class ConversationsActivity extends Activity {
             settingsView.findViewById(R.id.btn_clear_cache).setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { clearCache(); }
             });
+            styleSettings(settingsView);
+            buildThemePicker();
         }
         showTab(settingsView);
         setNavSelection((TextView) tab);
+    }
+
+    private void styleSettings(View root) {
+        root.findViewById(R.id.user_card).setBackground(Skin.glassCard(dp(22)));
+        ((TextView) root.findViewById(R.id.theme_header)).setTextColor(Skin.palette().onSurface);
+        Button save = root.findViewById(R.id.btn_save_media);
+        save.setBackground(Skin.pill_primary(dp(24)));
+        save.setTextColor(Skin.palette().onPrimary);
+        Button clear = root.findViewById(R.id.btn_clear_cache);
+        clear.setBackground(Skin.outlinePill(dp(24), Skin.palette().onSurfaceVariant));
+        clear.setTextColor(Skin.palette().onSurface);
+        TextView user = root.findViewById(R.id.set_username);
+        user.setTextColor(Skin.palette().onSurface);
+        TextView uid = root.findViewById(R.id.set_userid);
+        uid.setTextColor(Skin.palette().onSurfaceVariant);
+    }
+
+    private void buildThemePicker() {
+        LinearLayout host = settingsView.findViewById(R.id.theme_list);
+        host.removeAllViews();
+        for (final Skin.ThemeId t : Skin.ThemeId.values()) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            int pad = dp(12);
+            row.setPadding(pad, pad, pad, pad);
+            row.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            row.setBackground(t == Skin.current()
+                    ? Skin.pill_container(dp(20))
+                    : Skin.glassCard(dp(20)));
+            row.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    if (t == Skin.current()) return;
+                    Skin.setTheme(ConversationsActivity.this, t);
+                    recreate();
+                }
+            });
+            TextView swatch = new TextView(this);
+            swatch.setWidth(dp(34));
+            swatch.setHeight(dp(34));
+            swatch.setBackground(Skin.circle(Skin.palette().primary));
+            row.addView(swatch);
+            TextView label = new TextView(this);
+            label.setText(t.labelRes());
+            label.setTextSize(15);
+            label.setTextColor(Skin.palette().onSurface);
+            label.setPadding(dp(12), 0, 0, 0);
+            label.setTypeface(Typeface.DEFAULT, t == Skin.current() ? Typeface.BOLD : Typeface.NORMAL);
+            row.addView(label);
+            host.addView(row);
+            ViewGroup.MarginLayoutParams ml = (ViewGroup.MarginLayoutParams) row.getLayoutParams();
+            ml.bottomMargin = dp(8);
+            row.setLayoutParams(ml);
+        }
     }
 
     private void showStatus(String s) {
@@ -286,15 +387,29 @@ public class ConversationsActivity extends Activity {
     }
 
     private void setNavSelection(final TextView active) {
-        int onVariant = getResources().getColor(R.color.on_surface_variant);
-        int primary = getResources().getColor(R.color.primary);
-        for (int id : new int[]{R.id.tab_chats, R.id.tab_friends, R.id.tab_search, R.id.tab_settings}) {
-            TextView t = findViewById(id);
-            boolean isActive = t == active;
-            t.setTextColor(isActive ? primary : onVariant);
-            t.setTextSize(12);
-            t.setTypeface(t.getTypeface(), isActive ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
-            t.setBackgroundResource(isActive ? R.drawable.bg_input : 0);
+        try {
+            int onVariant = Skin.palette().onSurfaceVariant;
+            int primary = Skin.palette().primary;
+            for (int id : new int[]{R.id.tab_chats, R.id.tab_friends, R.id.tab_search, R.id.tab_settings}) {
+                TextView t = findViewById(id);
+                boolean isActive = t == active;
+                t.setTextColor(isActive ? primary : onVariant);
+                t.setTextSize(12);
+                t.setTypeface(t.getTypeface(), isActive ? Typeface.BOLD : Typeface.NORMAL);
+                t.setBackground(isActive ? Skin.pill_container(dp(20))
+                        : new android.graphics.drawable.ColorDrawable(0x00000000));
+            }
+        } catch (Exception ignored) {
+            int onVariant = getResources().getColor(R.color.on_surface_variant);
+            int primary = getResources().getColor(R.color.primary);
+            for (int id : new int[]{R.id.tab_chats, R.id.tab_friends, R.id.tab_search, R.id.tab_settings}) {
+                TextView t = findViewById(id);
+                boolean isActive = t == active;
+                t.setTextColor(isActive ? primary : onVariant);
+                t.setTextSize(12);
+                t.setTypeface(t.getTypeface(), isActive ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+                t.setBackgroundResource(isActive ? R.drawable.bg_input : 0);
+            }
         }
     }
 
@@ -448,7 +563,7 @@ public class ConversationsActivity extends Activity {
     }
 
     private int avatarColorFor(Conversation c) {
-        int fallback = getResources().getColor(R.color.primary_container);
+        int fallback = Skin.palette().primaryContainer;
         String other = otherId(c.convId);
         String hex = other != null ? friendColors.get(other) : null;
         if (hex == null) return fallback;
@@ -477,13 +592,14 @@ public class ConversationsActivity extends Activity {
             TextView time = convertView.findViewById(R.id.row_time);
             String title = titleFor(c);
             name.setText(title);
+            name.setTextColor(Skin.palette().onSurface);
             preview.setText(previewFor(c));
+            preview.setTextColor(Skin.palette().onSurfaceVariant);
             time.setText(Fmt.listTime(c.lastAt));
+            time.setTextColor(Skin.palette().onSurfaceVariant);
             avatar.setText(title.isEmpty() ? "?" : title.substring(0, 1).toUpperCase());
-            GradientDrawable d = new GradientDrawable();
-            d.setShape(GradientDrawable.OVAL);
-            d.setColor(avatarColorFor(c));
-            avatar.setBackground(d);
+            avatar.setTextColor(Skin.palette().onPrimary);
+            avatar.setBackground(Skin.circle(avatarColorFor(c)));
             return convertView;
         }
     }
@@ -493,6 +609,10 @@ public class ConversationsActivity extends Activity {
     private void showFriendsTab(View tab) {
         if (friendsView == null) {
             friendsView = LayoutInflater.from(this).inflate(R.layout.tab_friends, content, false);
+            ((TextView) friendsView.findViewById(R.id.hdr_pending)).setTextColor(Skin.palette().onSurfaceVariant);
+            ((TextView) friendsView.findViewById(R.id.hdr_friends)).setTextColor(Skin.palette().onSurfaceVariant);
+            ((TextView) friendsView.findViewById(R.id.pending_empty)).setTextColor(Skin.palette().onSurfaceVariant);
+            ((TextView) friendsView.findViewById(R.id.friends_empty)).setTextColor(Skin.palette().onSurfaceVariant);
             pendingAdapter = new PendingAdapter();
             friendAdapter = new FriendAdapter();
             ListView p = friendsView.findViewById(R.id.pending_list);
@@ -579,13 +699,23 @@ public class ConversationsActivity extends Activity {
             }
             final Map<String, Object> m = getItem(i);
             styleAvatar(convertView.findViewById(R.id.p_avatar), m);
-            ((TextView) convertView.findViewById(R.id.p_name)).setText(fullName(m));
-            ((TextView) convertView.findViewById(R.id.p_username)).setText("@" + String.valueOf(m.get("username")));
+            TextView pn = (TextView) convertView.findViewById(R.id.p_name);
+            pn.setText(fullName(m));
+            pn.setTextColor(Skin.palette().onSurface);
+            TextView pu = (TextView) convertView.findViewById(R.id.p_username);
+            pu.setText("@" + String.valueOf(m.get("username")));
+            pu.setTextColor(Skin.palette().onSurfaceVariant);
             final String requesterId = (String) m.get("id");
-            convertView.findViewById(R.id.btn_accept).setOnClickListener(new View.OnClickListener() {
+            Button accept = convertView.findViewById(R.id.btn_accept);
+            accept.setBackground(Skin.pill_primary(dp(20)));
+            accept.setTextColor(Skin.palette().onPrimary);
+            accept.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { respond(requesterId, true); }
             });
-            convertView.findViewById(R.id.btn_decline).setOnClickListener(new View.OnClickListener() {
+            Button decline = convertView.findViewById(R.id.btn_decline);
+            decline.setBackground(Skin.outlinePill(dp(20), Skin.palette().onSurfaceVariant));
+            decline.setTextColor(Skin.palette().onSurface);
+            decline.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { respond(requesterId, false); }
             });
             return convertView;
@@ -603,11 +733,18 @@ public class ConversationsActivity extends Activity {
             }
             final Map<String, Object> m = getItem(i);
             styleAvatar(convertView.findViewById(R.id.f_avatar), m);
-            ((TextView) convertView.findViewById(R.id.f_name)).setText(fullName(m));
-            ((TextView) convertView.findViewById(R.id.f_username)).setText("@" + String.valueOf(m.get("username")));
+            TextView fn = (TextView) convertView.findViewById(R.id.f_name);
+            fn.setText(fullName(m));
+            fn.setTextColor(Skin.palette().onSurface);
+            TextView fu = (TextView) convertView.findViewById(R.id.f_username);
+            fu.setText("@" + String.valueOf(m.get("username")));
+            fu.setTextColor(Skin.palette().onSurfaceVariant);
             final String friendId = (String) m.get("id");
             final String friendName = fullName(m);
-            convertView.findViewById(R.id.btn_talk).setOnClickListener(new View.OnClickListener() {
+            Button talk = convertView.findViewById(R.id.btn_talk);
+            talk.setBackground(Skin.pill_container(dp(20)));
+            talk.setTextColor(Skin.palette().primary);
+            talk.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { openWithFriend(friendId, friendName); }
             });
             return convertView;
@@ -623,6 +760,7 @@ public class ConversationsActivity extends Activity {
         i.putExtra("conv_id", "dm:" + ids[0] + ":" + ids[1]);
         i.putExtra("title", friendName);
         startActivity(i);
+        overridePendingTransition(R.anim.act_fwd_in, R.anim.act_fwd_out);
     }
 
     // ---------- Search tab ----------
@@ -635,7 +773,12 @@ public class ConversationsActivity extends Activity {
             ListView lv = searchView.findViewById(R.id.result_list);
             lv.setAdapter(searchAdapter);
             lv.setEmptyView(searchView.findViewById(R.id.result_empty));
+            ((TextView) searchView.findViewById(R.id.result_empty)).setTextColor(Skin.palette().onSurfaceVariant);
             final EditText input = searchView.findViewById(R.id.search_input);
+            input.setBackground(Skin.pill_input(20));
+            Button btn = searchView.findViewById(R.id.btn_search);
+            btn.setBackground(Skin.pill_primary(20));
+            btn.setTextColor(Skin.palette().onPrimary);
             searchView.findViewById(R.id.btn_search).setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { doSearch(input.getText().toString().trim()); }
             });
@@ -718,25 +861,29 @@ public class ConversationsActivity extends Activity {
             }
             final Map<String, Object> m = getItem(i);
             styleAvatar(convertView.findViewById(R.id.r_avatar), m);
-            ((TextView) convertView.findViewById(R.id.r_name)).setText(fullName(m));
-            ((TextView) convertView.findViewById(R.id.r_username)).setText("@" + String.valueOf(m.get("username")));
+            TextView rn = (TextView) convertView.findViewById(R.id.r_name);
+            rn.setText(fullName(m));
+            rn.setTextColor(Skin.palette().onSurface);
+            TextView ru = (TextView) convertView.findViewById(R.id.r_username);
+            ru.setText("@" + String.valueOf(m.get("username")));
+            ru.setTextColor(Skin.palette().onSurfaceVariant);
             final Button invite = convertView.findViewById(R.id.btn_invite);
             final String username = (String) m.get("username");
             final String id = (String) m.get("id");
             if (id != null && friendIds.contains(id)) {
                 invite.setEnabled(false);
-                invite.setBackgroundResource(R.drawable.bg_btn_primary);
-                invite.setTextColor(getResources().getColor(R.color.on_primary));
+                invite.setBackground(Skin.pill_container(dp(20)));
+                invite.setTextColor(Skin.palette().primary);
                 invite.setText(R.string.already_friends);
             } else if (invitedUsernames.contains(username)) {
                 invite.setEnabled(false);
-                invite.setBackgroundResource(0);
-                invite.setTextColor(getResources().getColor(R.color.on_surface_variant));
+                invite.setBackground(Skin.outlinePill(dp(20), Skin.palette().onSurfaceVariant));
+                invite.setTextColor(Skin.palette().onSurfaceVariant);
                 invite.setText(R.string.btn_invited);
             } else {
                 invite.setEnabled(true);
-                invite.setBackgroundResource(R.drawable.bg_btn_primary);
-                invite.setTextColor(getResources().getColor(R.color.on_primary));
+                invite.setBackground(Skin.pill_primary(dp(20)));
+                invite.setTextColor(Skin.palette().onPrimary);
                 invite.setText(R.string.btn_invite);
                 invite.setOnClickListener(new View.OnClickListener() {
                     @Override public void onClick(View v) { sendInvite(username); }
@@ -757,13 +904,11 @@ public class ConversationsActivity extends Activity {
     }
 
     private void styleAvatar(TextView tv, Map<String, Object> m) {
-        int fallback = getResources().getColor(R.color.primary_container);
+        int fallback = Skin.palette().primaryContainer;
         String title = fullName(m);
         tv.setText(title.substring(0, 1).toUpperCase());
-        GradientDrawable d = new GradientDrawable();
-        d.setShape(GradientDrawable.OVAL);
-        d.setColor(colorFor(m, fallback));
-        tv.setBackground(d);
+        tv.setTextColor(Skin.palette().onPrimary);
+        tv.setBackground(Skin.circle(colorFor(m, fallback)));
     }
 
     private static int colorFor(Map<String, Object> m, int fallback) {
