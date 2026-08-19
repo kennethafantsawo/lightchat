@@ -6,6 +6,59 @@
     android:background="@android:color/transparent">
 
     <LinearLayout
+        android:id="@+id/pinned_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:visibility="gone"
+        android:background="@drawable/bg_chip_ripple">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📌"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/pinned_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="@color/on_surface"
+            android:textSize="13sp"
+            android:layout_marginStart="6dp" />
+
+        <TextView
+            android:id="@+id/pinned_close"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="@string/disc_cancel"
+            android:textColor="@color/on_surface"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/typing_banner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone"
+        android:background="@drawable/bg_chip_ripple"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="13sp"
+        android:padding="8dp" />
+
+    <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

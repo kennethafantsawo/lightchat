@@ -65,6 +65,11 @@
     <string name="msg_forwarded">Message transféré.</string>
     <string name="confirm_delete">Supprimer ce message pour tout le monde ?</string>
     <string name="edited_marker">Modifié</string>
+    <string name="msg_react">Réagir</string>
+    <string name="msg_clear_reaction">Retirer ma réaction</string>
+    <string name="msg_pin">Épingler</string>
+    <string name="msg_unpin">Désépingler</string>
+    <string name="pinned_message">📌 %1$s</string>
     <string name="search_disc_hint">Rechercher dans la discussion…</string>
     <string name="search_disc_empty">Aucun résultat.</string>
     <string name="disc_search">🔍</string>

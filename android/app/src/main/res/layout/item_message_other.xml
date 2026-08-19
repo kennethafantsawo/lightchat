@@ -41,6 +41,21 @@
     </LinearLayout>
 
     <TextView
+        android:id="@+id/msg_reactions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:visibility="gone"
+        android:background="@drawable/bg_reply"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="12sp" />
+
+    <TextView
         android:id="@+id/msg_meta"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

@@ -99,6 +99,36 @@ public final class ApiClient {
         }
     }
 
+    public static ApiResponse reaction(String token, String messageId, String emoji) throws IOException {
+        String json = "{\"message_id\":\"" + esc(messageId) + "\",\"emoji\":\"" + esc(emoji) + "\"}";
+        return call("POST", "/api/messages/reaction", json, token);
+    }
+
+    public static ApiResponse pin(String token, String convId, String messageId, boolean pinned) throws IOException {
+        String json = "{\"conv_id\":\"" + esc(convId) + "\",\"message_id\":\"" + esc(messageId) + "\",\"pinned\":" + pinned + "}";
+        return call("POST", "/api/messages/pin", json, token);
+    }
+
+    public static ApiResponse saveDraft(String token, String convId, String body) throws IOException {
+        String json = "{\"conv_id\":\"" + esc(convId) + "\",\"body\":\"" + esc(body) + "\"}";
+        return call("POST", "/api/drafts", json, token);
+    }
+
+    public static ApiResponse getDraft(String token, String convId) throws IOException {
+        return call("GET", "/api/drafts?conv_id=" + esc(convId), null, token);
+    }
+
+    public static void typing(String token, String convId, boolean typing) {
+        try {
+            String json = "{\"conv_id\":\"" + esc(convId) + "\",\"typing\":" + typing + "}";
+            call("POST", "/api/typing", json, token);
+        } catch (Exception ignored) {}
+    }
+
+    private static String esc(String s) {
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
     private static String readAll(InputStream is) throws IOException {
         StringBuilder sb = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {

@@ -17,6 +17,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.LruCache;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -95,6 +97,13 @@ public class DiscussionActivity extends Activity {
     private Message editMsg;
     private String searchQuery;
 
+    private View pinnedBanner;
+    private TextView pinnedText;
+    private View pinnedClose;
+    private TextView typingBanner;
+    private boolean typingShown = false;
+    private String draftText = null;
+
     private MediaPlayer player;
     private TextView playerBtn;
     private String playerBase;
@@ -154,6 +163,24 @@ public class DiscussionActivity extends Activity {
         });
 
         applyGlass();
+
+        pinnedBanner = findViewById(R.id.pinned_banner);
+        pinnedText = (TextView) pinnedBanner.findViewById(R.id.pinned_text);
+        pinnedClose = pinnedBanner.findViewById(R.id.pinned_close);
+        typingBanner = (TextView) findViewById(R.id.typing_banner);
+        pinnedClose.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { unpinAll(); }
+        });
+        loadDraft();
+        input.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void afterTextChanged(Editable s) {
+                draftText = s.toString();
+                ApiClient.typing(session.token(), convId, s.length() > 0);
+                if (s.length() == 0) saveDraftAsync("");
+            }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        });
 
         send.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { sendMessage(); }
@@ -403,6 +430,14 @@ public class DiscussionActivity extends Activity {
             opts.add(getString(R.string.msg_forward));
             action.add(3);
         }
+        if (!m.isDeleted() && !"system".equals(m.type)) {
+            opts.add(getString(R.string.msg_react));
+            action.add(4);
+        }
+        if (!m.isDeleted() && !"system".equals(m.type)) {
+            opts.add(getString(m.isPinned() ? R.string.msg_unpin : R.string.msg_pin));
+            action.add(5);
+        }
         new AlertDialog.Builder(this)
             .setTitle(null)
             .setItems(opts.toArray(new String[0]), new DialogInterface.OnClickListener() {
@@ -411,12 +446,155 @@ public class DiscussionActivity extends Activity {
                     if (a == 0) startReply(m);
                     else if (a == 1) startEdit(m);
                     else if (a == 2) confirmDelete(m);
-                    else forward(m);
+                    else if (a == 3) forward(m);
+                    else if (a == 4) showReactionPicker(m);
+                    else doPin(m);
                 }
             })
             .setNegativeButton(android.R.string.cancel, null)
             .show();
     }
+
+    private void showReactionPicker(final Message m) {
+        final String[] emojis = {"\uD83D\uDC4D", "\uD83D\uDE04", "\uD83D\uDE02", "\u2764\uFE0F", "\uD83D\uDE42", "\uD83D\uDE10", "\uD83D\uDE22", "\uD83D\uDE20"};
+        final int[] idx = new int[1];
+        final String[] labels = new String[emojis.length + 1];
+        for (int i = 0; i < emojis.length; i++) labels[i] = emojis[i];
+        labels[emojis.length] = getString(R.string.msg_clear_reaction);
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.msg_react)
+            .setSingleChoiceItems(labels, -1, new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int which) { idx[0] = which; }
+            })
+            .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int w) {
+                    if (idx[0] < 0) return;
+                    final String emoji = idx[0] < emojis.length ? emojis[idx[0]] : null;
+                    final String token = session.token();
+                    final String mid = m.id;
+                    final String conv = convId;
+                    Async.exec(DiscussionActivity.this, new Async.Worker<Boolean>() {
+                        @Override public Boolean run() throws Exception {
+                            ApiClient.ApiResponse r = ApiClient.reaction(token, mid, emoji == null ? "" : emoji);
+                            return r.status == 200;
+                        }
+                    }, new Async.UI<Boolean>() {
+                        @Override public void on(Boolean ok, Exception err) {
+                            if (ok == null || !ok) showStatus(getString(R.string.send_error));
+                        }
+                    });
+                }
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
+    }
+
+    private void doPin(final Message m) {
+        final String token = session.token();
+        final String conv = convId;
+        final boolean target = !m.isPinned();
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() throws Exception {
+                ApiClient.ApiResponse r = ApiClient.pin(token, conv, m.id, target);
+                return r.status == 200;
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                if (ok != null && ok) {
+                    if (target) showPinnedBanner(m);
+                    else hidePinnedBanner();
+                } else {
+                    showStatus(getString(R.string.send_error));
+                }
+            }
+        });
+    }
+
+    // ---------- Draft / Pinned / Typing ----------
+
+    private void loadDraft() {
+        final String token = session.token();
+        final String conv = convId;
+        Async.exec(this, new Async.Worker<String>() {
+            @Override public String run() {
+                try {
+                    ApiClient.ApiResponse r = ApiClient.getDraft(token, conv);
+                    if (r.status != 200) return null;
+                    Map<String, Object> m = Json.parseObject(r.body);
+                    Object o = m.get("body");
+                    return o == null ? null : String.valueOf(o);
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+        }, new Async.UI<String>() {
+            @Override public void on(String body, Exception err) {
+                if (body != null && !body.isEmpty()) {
+                    draftText = body;
+                    input.setText(body);
+                    input.setSelection(input.getText().length());
+                }
+            }
+        });
+    }
+
+    private void saveDraftAsync(final String body) {
+        final String token = session.token();
+        final String conv = convId;
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() {
+                try {
+                    ApiClient.ApiResponse r = ApiClient.saveDraft(token, conv, body);
+                    return r.status == 200;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        }, null);
+    }
+
+    private void showPinnedBanner(Message m) {
+        if (pinnedBanner == null) return;
+        String preview = preview(m);
+        pinnedText.setText(getString(R.string.pinned_message, preview));
+        pinnedBanner.setVisibility(View.VISIBLE);
+    }
+
+    private void hidePinnedBanner() {
+        if (pinnedBanner != null) pinnedBanner.setVisibility(View.GONE);
+    }
+
+    private void unpinAll() {
+        final String token = session.token();
+        final String conv = convId;
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() throws Exception {
+                ApiClient.ApiResponse r = ApiClient.pin(token, conv, "", false);
+                return r.status == 200;
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                if (ok != null && ok) hidePinnedBanner();
+            }
+        });
+    }
+
+    private void showTypingBanner(boolean show) {
+        if (typingBanner == null) return;
+        if (show) {
+            typingShown = true;
+            typingBanner.setVisibility(View.VISIBLE);
+        }
+        handler.removeCallbacks(hideTyping);
+        handler.postDelayed(hideTyping, 4000L);
+    }
+
+    private final Runnable hideTyping = new Runnable() {
+        @Override public void run() {
+            typingShown = false;
+            if (typingBanner != null) typingBanner.setVisibility(View.GONE);
+        }
+    };
 
     private void startReply(Message m) {
         cancelBar();
@@ -851,6 +1029,10 @@ public class DiscussionActivity extends Activity {
                 }
                 mergeSendPayload(resp.body);
                 status.setVisibility(View.GONE);
+                if (draftText != null && draftText.length() > 0) {
+                    draftText = null;
+                    saveDraftAsync("");
+                }
                 handler.post(pollLoop);
             }
         });
@@ -935,6 +1117,36 @@ public class DiscussionActivity extends Activity {
                     msgMap.remove(mid);
                     refresh();
                 }
+            } else if ("message_pin".equals(type)) {
+                Object mo = m.get("message");
+                if (!(mo instanceof Map)) return;
+                @SuppressWarnings("unchecked") Map<String, Object> mm = (Map<String, Object>) mo;
+                Message msg = Message.fromJson(mm);
+                if (msg.id == null || !convId.equals(msg.convId)) return;
+                msgMap.put(msg.id, msg);
+                refresh();
+                if (msg.isPinned()) showPinnedBanner(msg);
+            } else if ("message_reaction".equals(type)) {
+                String mid = (String) m.get("message_id");
+                if (mid == null || !convId.equals(m.get("conv_id"))) return;
+                Message cur = msgMap.get(mid);
+                if (cur == null) return;
+                @SuppressWarnings("unchecked") List<Object> rl = (List<Object>) m.get("reactions");
+                List<String> rx = new ArrayList<String>();
+                if (rl != null) {
+                    for (Object o : rl) {
+                        if (o instanceof Map) {
+                            Object e = ((Map<String, Object>) o).get("emoji");
+                            if (e != null) rx.add(String.valueOf(e));
+                        }
+                    }
+                }
+                msgMap.put(mid, cur.withReactions(rx));
+                refresh();
+            } else if ("typing".equals(type)) {
+                if (!convId.equals(m.get("conv_id"))) return;
+                String who = (String) m.get("user_id");
+                if (who != null && !who.equals(session.userId())) showTypingBanner(true);
             } else if ("read".equals(type)) {
                 if (!convId.equals(m.get("conv_id"))) return;
                 long upTo = toLong(m.get("up_to"));
@@ -1374,6 +1586,27 @@ public class DiscussionActivity extends Activity {
     }
 
     private void bindCommon(View root, Message m) {
+        TextView rt = root.findViewById(R.id.msg_reactions);
+        if (rt != null) {
+            if (m.reactions != null && !m.reactions.isEmpty()) {
+                StringBuilder sb = new StringBuilder();
+                Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+                for (String e : m.reactions) {
+                    Integer c = counts.get(e);
+                    counts.put(e, c == null ? 1 : c + 1);
+                }
+                for (Map.Entry<String, Integer> en : counts.entrySet()) {
+                    if (sb.length() > 0) sb.append("  ");
+                    sb.append(en.getKey());
+                    if (en.getValue() > 1) sb.append(" ").append(en.getValue());
+                }
+                rt.setText(sb.toString());
+                rt.setTextColor(Skin.palette().onSurface);
+                rt.setVisibility(View.VISIBLE);
+            } else {
+                rt.setVisibility(View.GONE);
+            }
+        }
         TextView reply = root.findViewById(R.id.reply_preview);
         if (reply != null) {
             Message quoted = m.replyToId != null ? msgMap.get(m.replyToId) : null;
