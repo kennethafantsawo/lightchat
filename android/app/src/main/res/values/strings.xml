@@ -199,6 +199,21 @@
     <string name="blocked_unblocked">Compte débloqué.</string>
     <string name="blocked_blocked">Compte bloqué.</string>
 
+    <string name="backup_section">Sauvegarde et cloud</string>
+    <string name="backup_export">Exporter ma sauvegarde</string>
+    <string name="backup_import">Importer une sauvegarde</string>
+    <string name="backup_sync">Synchroniser maintenant</string>
+    <string name="backup_exporting">Export de la sauvegarde…</string>
+    <string name="backup_importing">Import de la sauvegarde…</string>
+    <string name="backup_syncing">Synchronisation…</string>
+    <string name="backup_exported">Sauvegarde enregistrée : %1$s</string>
+    <string name="backup_imported">Importé : %1$d conversations, %2$d messages, %3$d blocages.</string>
+    <string name="backup_imported_empty">Aucune donnée importable dans le fichier.</string>
+    <string name="backup_none">Aucune sauvegarde disponible.</string>
+    <string name="backup_sync_done">Synchronisé : %1$d message(s).</string>
+    <string name="backup_error">Échec de la sauvegarde (réseau ou fichier).</string>
+    <string name="backup_import_pick">Choisir un fichier de sauvegarde</string>
+
     <string name="msg_report">Signaler</string>
     <string name="msg_block_sender">Bloquer l\'expéditeur</string>
     <string name="report_title">Signaler le message</string>

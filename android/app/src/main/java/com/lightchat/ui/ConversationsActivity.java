@@ -55,7 +55,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 import org.json.JSONObject;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -94,6 +98,7 @@ public class ConversationsActivity extends Activity {
     private static final int REQ_NOTIF = 2001;
     private static final int REQ_STORAGE = 2002;
     private static final int REQ_AVATAR = 2003;
+    private static final int REQ_BACKUP_IMPORT = 2004;
     private static boolean notifAsked = false;
 
     private View settingsView;
@@ -351,6 +356,25 @@ public class ConversationsActivity extends Activity {
             blockedEmpty = settingsView.findViewById(R.id.blocked_empty);
             TextView blockedHdr = settingsView.findViewById(R.id.blocked_header);
             blockedHdr.setTextColor(Skin.palette().onSurface);
+
+            Button backupExport = settingsView.findViewById(R.id.btn_backup_export);
+            backupExport.setBackground(Skin.pill_primary(dp(24)));
+            backupExport.setTextColor(Skin.palette().onPrimary);
+            backupExport.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { doBackupExport(); }
+            });
+            Button backupImport = settingsView.findViewById(R.id.btn_backup_import);
+            backupImport.setBackground(Skin.pill_primary(dp(24)));
+            backupImport.setTextColor(Skin.palette().onPrimary);
+            backupImport.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { doBackupImport(); }
+            });
+            Button backupSync = settingsView.findViewById(R.id.btn_backup_sync);
+            backupSync.setBackground(Skin.pill_primary(dp(24)));
+            backupSync.setTextColor(Skin.palette().onPrimary);
+            backupSync.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { doBackupSync(); }
+            });
         }
         showTab(settingsView);
         setNavSelection((TextView) tab);
@@ -722,6 +746,156 @@ public class ConversationsActivity extends Activity {
         }, new Async.UI<Integer>() {
             @Override public void on(Integer n, Exception err) {
                 showStatus(getString(R.string.settings_status_cleared, n == null ? 0 : n));
+            }
+        });
+    }
+
+    private void doBackupExport() {
+        final String token = session.token();
+        if (token == null) return;
+        showStatus(getString(R.string.backup_exporting));
+        Async.exec(this, new Async.Worker<File>() {
+            @Override public File run() throws Exception {
+                final String[] holder = new String[1];
+                final Exception[] errHolder = new Exception[1];
+                ApiClient.exportData(token, new ApiClient.ExportCallback() {
+                    @Override public void on(String json, Exception err) {
+                        holder[0] = json;
+                        errHolder[0] = err;
+                    }
+                });
+                if (errHolder[0] != null) throw errHolder[0];
+                if (holder[0] == null) throw new IOException("export vide");
+                return writeBackupFile(holder[0]);
+            }
+        }, new Async.UI<File>() {
+            @Override public void on(File f, Exception err) {
+                if (settingsStatus != null) settingsStatus.setVisibility(View.GONE);
+                if (err != null || f == null) {
+                    Toast.makeText(ConversationsActivity.this, R.string.backup_error, Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(ConversationsActivity.this,
+                            getString(R.string.backup_exported, f.getAbsolutePath()), Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+    }
+
+    private File writeBackupFile(String json) {
+        File dir = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
+        if (dir == null) dir = new File(getFilesDir(), "backups");
+        dir.mkdirs();
+        String ts = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+        File f = new File(dir, "lightchat-backup-" + ts + ".json");
+        try (FileOutputStream os = new FileOutputStream(f)) {
+            os.write(json.getBytes(StandardCharsets.UTF_8));
+            return f;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private void doBackupImport() {
+        Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+        i.setType("*/*");
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        try {
+            startActivityForResult(Intent.createChooser(i, getString(R.string.backup_import_pick)), REQ_BACKUP_IMPORT);
+        } catch (Exception e) {
+            Toast.makeText(ConversationsActivity.this, R.string.backup_error, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void importBackupFromUri(final Uri uri) {
+        if (uri == null) return;
+        final String token = session.token();
+        if (token == null) return;
+        showStatus(getString(R.string.backup_importing));
+        Async.exec(this, new Async.Worker<String>() {
+            @Override public String run() throws Exception {
+                return readPickedText(uri);
+            }
+        }, new Async.UI<String>() {
+            @Override public void on(final String json, Exception err) {
+                if (err != null || json == null || json.trim().isEmpty()) {
+                    if (settingsStatus != null) settingsStatus.setVisibility(View.GONE);
+                    Toast.makeText(ConversationsActivity.this, R.string.backup_error, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Async.exec(ConversationsActivity.this, new Async.Worker<ApiClient.ImportResult>() {
+                    @Override public ApiClient.ImportResult run() throws Exception {
+                        final ApiClient.ImportResult[] holder = new ApiClient.ImportResult[1];
+                        final Exception[] errHolder = new Exception[1];
+                        ApiClient.importData(token, json, new ApiClient.ImportCallback() {
+                            @Override public void on(ApiClient.ImportResult r, Exception e) {
+                                holder[0] = r;
+                                errHolder[0] = e;
+                            }
+                        });
+                        if (errHolder[0] != null) throw errHolder[0];
+                        return holder[0];
+                    }
+                }, new Async.UI<ApiClient.ImportResult>() {
+                    @Override public void on(ApiClient.ImportResult r, Exception err2) {
+                        if (settingsStatus != null) settingsStatus.setVisibility(View.GONE);
+                        if (err2 != null || r == null) {
+                            Toast.makeText(ConversationsActivity.this, R.string.backup_error, Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        if (r.conversations == 0 && r.messages == 0 && r.blocks == 0) {
+                            Toast.makeText(ConversationsActivity.this, R.string.backup_imported_empty, Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(ConversationsActivity.this,
+                                    getString(R.string.backup_imported, r.conversations, r.messages, r.blocks),
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    private String readPickedText(Uri uri) throws Exception {
+        InputStream in = getContentResolver().openInputStream(uri);
+        if (in == null) throw new IOException("fichier illisible");
+        try (InputStream is = in) {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int r;
+            while ((r = is.read(buf)) != -1) bos.write(buf, 0, r);
+            return new String(bos.toByteArray(), StandardCharsets.UTF_8);
+        }
+    }
+
+    private void doBackupSync() {
+        final String token = session.token();
+        if (token == null) return;
+        SharedPreferences prefs = getSharedPreferences("lc_prefs", MODE_PRIVATE);
+        long since = prefs.getLong("last_sync_ms", 0L);
+        showStatus(getString(R.string.backup_syncing));
+        Async.exec(this, new Async.Worker<ApiClient.SyncResult>() {
+            @Override public ApiClient.SyncResult run() throws Exception {
+                final ApiClient.SyncResult[] holder = new ApiClient.SyncResult[1];
+                final Exception[] errHolder = new Exception[1];
+                ApiClient.forceSync(token, since, new ApiClient.SyncCallback() {
+                    @Override public void on(int count, long now, Exception e) {
+                        holder[0] = new ApiClient.SyncResult(count, now);
+                        errHolder[0] = e;
+                    }
+                });
+                if (errHolder[0] != null) throw errHolder[0];
+                return holder[0];
+            }
+        }, new Async.UI<ApiClient.SyncResult>() {
+            @Override public void on(ApiClient.SyncResult r, Exception err) {
+                if (settingsStatus != null) settingsStatus.setVisibility(View.GONE);
+                if (err != null || r == null) {
+                    Toast.makeText(ConversationsActivity.this, R.string.backup_error, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (r.now > 0) prefs.edit().putLong("last_sync_ms", r.now).apply();
+                Toast.makeText(ConversationsActivity.this,
+                        getString(R.string.backup_sync_done, r.messageCount), Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -1333,6 +1507,14 @@ public class ConversationsActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_BACKUP_IMPORT) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                importBackupFromUri(data.getData());
+            } else {
+                Toast.makeText(this, R.string.backup_error, Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
         if (requestCode != REQ_AVATAR) return;
         if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
         final Uri uri = data.getData();

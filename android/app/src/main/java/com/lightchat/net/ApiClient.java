@@ -489,6 +489,97 @@ public final class ApiClient {
         }
     }
 
+    // ---------- Sauvegarde / export / import / sync ----------
+
+    public interface ExportCallback {
+        void on(String json, Exception err);
+    }
+
+    public static void exportData(String token, ExportCallback cb) {
+        try {
+            ApiResponse r = call("GET", "/api/export", null, token);
+            if (r.status == 200 && r.body != null && !r.body.isEmpty()) {
+                cb.on(r.body, null);
+            } else {
+                cb.on(null, new IOException("export failed: " + r.status));
+            }
+        } catch (Exception e) {
+            cb.on(null, e);
+        }
+    }
+
+    public static final class ImportResult {
+        public final boolean ok;
+        public final int conversations;
+        public final int messages;
+        public final int blocks;
+        ImportResult(boolean ok, int conversations, int messages, int blocks) {
+            this.ok = ok;
+            this.conversations = conversations;
+            this.messages = messages;
+            this.blocks = blocks;
+        }
+    }
+
+    public interface ImportCallback {
+        void on(ImportResult result, Exception err);
+    }
+
+    public static void importData(String token, String json, ImportCallback cb) {
+        try {
+            ApiResponse r = call("POST", "/api/import", json, token);
+            boolean ok = r.status >= 200 && r.status < 300;
+            int convs = 0, msgs = 0, blks = 0;
+            if (r.body != null && !r.body.isEmpty()) {
+                Map<String, Object> o = Json.parseObject(r.body);
+                Object imp = o.get("imported");
+                if (imp instanceof Map) {
+                    @SuppressWarnings("unchecked") Map<String, Object> m = (Map<String, Object>) imp;
+                    if (m.get("conversations") instanceof Number)
+                        convs = ((Number) m.get("conversations")).intValue();
+                    if (m.get("messages") instanceof Number)
+                        msgs = ((Number) m.get("messages")).intValue();
+                    if (m.get("blocks") instanceof Number)
+                        blks = ((Number) m.get("blocks")).intValue();
+                }
+            }
+            cb.on(new ImportResult(ok, convs, msgs, blks), null);
+        } catch (Exception e) {
+            cb.on(new ImportResult(false, 0, 0, 0), e);
+        }
+    }
+
+    public interface SyncCallback {
+        void on(int messageCount, long now, Exception err);
+    }
+
+    public static final class SyncResult {
+        public final int messageCount;
+        public final long now;
+        SyncResult(int messageCount, long now) {
+            this.messageCount = messageCount;
+            this.now = now;
+        }
+    }
+
+    public static void forceSync(String token, long since, SyncCallback cb) {
+        try {
+            ApiResponse r = call("GET", "/api/sync/now?since=" + since, null, token);
+            int count = 0;
+            long now = 0L;
+            if (r.status == 200 && r.body != null && !r.body.isEmpty()) {
+                Map<String, Object> o = Json.parseObject(r.body);
+                Object msgs = o.get("messages");
+                if (msgs instanceof List) count = ((List<Object>) msgs).size();
+                Object n = o.get("now");
+                if (n instanceof Number) now = ((Number) n).longValue();
+            }
+            cb.on(count, now, null);
+        } catch (Exception e) {
+            cb.on(0, 0L, e);
+        }
+    }
+
     private static String str(Map<String, Object> m, String key) {
         Object v = m.get(key);
         return v == null ? "" : String.valueOf(v);

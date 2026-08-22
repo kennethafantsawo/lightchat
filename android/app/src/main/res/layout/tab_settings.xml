@@ -116,6 +116,51 @@
             android:textSize="13sp"
             android:visibility="gone" />
 
+        <TextView
+            android:id="@+id/backup_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/backup_section"
+            android:textColor="@color/on_surface"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:id="@+id/backup_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/btn_backup_export"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="@string/backup_export"
+                android:background="@drawable/bg_btn_primary_ripple"
+                android:textColor="@color/on_primary" />
+
+            <Button
+                android:id="@+id/btn_backup_import"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="@string/backup_import"
+                android:background="@drawable/bg_btn_primary_ripple"
+                android:textColor="@color/on_primary" />
+
+            <Button
+                android:id="@+id/btn_backup_sync"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="@string/backup_sync"
+                android:background="@drawable/bg_btn_primary_ripple"
+                android:textColor="@color/on_primary" />
+        </LinearLayout>
+
         <Button
             android:id="@+id/btn_save_media"
             android:layout_width="match_parent"
