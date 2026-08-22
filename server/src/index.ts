@@ -12,6 +12,7 @@ export interface Env {
   DB: D1Database;
   MEDIA: R2Bucket;
   CHAT_ROOM: DurableObjectNamespace;
+  GIPHY_API_KEY?: string;
 }
 
 async function json(data: unknown, status = 200): Promise<Response> {
@@ -503,6 +504,42 @@ export default {
         if (uid !== user.id) await pushToUser(env, uid, { type: "ephemeral", conv_id: convId, ttl });
       }
       return json({ ok: true, ttl });
+    }
+
+    if (path === "/api/stickers" && req.method === "GET") {
+      const packs = await env.DB.prepare(`SELECT id, name, cover_url FROM sticker_packs ORDER BY name`).all();
+      const items = await env.DB.prepare(`SELECT id, pack_id, emoji, image_url FROM sticker_pack_items`).all();
+      const byPack = new Map();
+      for (const it of (items.results as any[])) {
+        if (!byPack.has(it.pack_id)) byPack.set(it.pack_id, []);
+        byPack.get(it.pack_id).push(it);
+      }
+      const result = (packs.results as any[]).map((p) => ({ ...p, items: byPack.get(p.id) || [] }));
+      return json({ packs: result });
+    }
+
+    if (path === "/api/gif/search" && req.method === "POST") {
+      const b = await readJson(req);
+      if (!env.GIPHY_API_KEY) return json({ gifs: [] });
+      const q = (b.q || "").toString().trim();
+      const limit = Math.min(Number(b.limit) || 24, 50);
+      if (!q) return json({ gifs: [] });
+      const giphyUrl = `https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(env.GIPHY_API_KEY)}&q=${encodeURIComponent(q)}&limit=${limit}&rating=pg-13`;
+      try {
+        const resp = await fetch(giphyUrl);
+        const data = await resp.json() as any;
+        const gifs = (data.data || []).map((g: any) => ({
+          id: g.id,
+          title: g.title,
+          url: g.images?.original?.url,
+          preview: g.images?.fixed_width?.url,
+          width: Number(g.images?.original?.width) || 0,
+          height: Number(g.images?.original?.height) || 0,
+        }));
+        return json({ gifs });
+      } catch {
+        return json({ gifs: [] });
+      }
     }
 
     return json({ error: "Not found" }, 404);
