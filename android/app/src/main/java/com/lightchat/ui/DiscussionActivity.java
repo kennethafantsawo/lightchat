@@ -22,11 +22,15 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.LruCache;
 import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
 import android.widget.AbsListView;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -402,6 +406,21 @@ public class DiscussionActivity extends Activity {
         findViewById(R.id.btn_emoji).setBackground(Skin.pill_container(dp(18)));
         findViewById(R.id.btn_sticker).setBackground(Skin.pill_container(dp(18)));
         findViewById(R.id.btn_mic).setBackground(Skin.pill_container(dp(18)));
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_discussion, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_search) {
+            showSearchDialog();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -884,20 +903,124 @@ public class DiscussionActivity extends Activity {
     // ---------- Search ----------
 
     private void showSearchDialog() {
+        final LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(12), dp(8), dp(12), dp(8));
+
         final EditText q = new EditText(this);
         q.setSingleLine();
-        q.setHint(R.string.search_disc_hint);
+        q.setHint(R.string.search_hint);
         q.setTextColor(getResources().getColor(R.color.on_surface));
         q.setHintTextColor(getResources().getColor(R.color.on_surface_variant));
         q.setPadding(dp(12), dp(8), dp(12), dp(8));
-        new AlertDialog.Builder(this)
-            .setTitle(R.string.disc_search)
-            .setView(q)
-            .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                @Override public void onClick(DialogInterface d, int w) { applySearch(q.getText().toString().trim()); }
-            })
-            .setNegativeButton(android.R.string.cancel, null)
-            .show();
+        root.addView(q, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        final TextView empty = new TextView(this);
+        empty.setText(R.string.no_results);
+        empty.setGravity(Gravity.CENTER);
+        empty.setPadding(dp(12), dp(24), dp(12), dp(24));
+        empty.setTextColor(getResources().getColor(R.color.on_surface_variant));
+        empty.setVisibility(View.GONE);
+
+        final ListView lv = new ListView(this);
+        final ArrayList<ApiClient.SearchResult> data = new ArrayList<ApiClient.SearchResult>();
+        final SearchListAdapter adp = new SearchListAdapter(data);
+        lv.setAdapter(adp);
+        lv.setEmptyView(empty);
+
+        root.addView(lv, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+        root.addView(empty, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        final AlertDialog dlg = new AlertDialog.Builder(this)
+                .setTitle(R.string.menu_search)
+                .setView(root)
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+
+        final Runnable[] pending = new Runnable[1];
+        q.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void afterTextChanged(Editable s) {
+                final String query = s.toString().trim();
+                if (pending[0] != null) handler.removeCallbacks(pending[0]);
+                if (query.length() < 2) {
+                    data.clear();
+                    adp.notifyDataSetChanged();
+                    empty.setVisibility(View.GONE);
+                    return;
+                }
+                pending[0] = new Runnable() {
+                    @Override public void run() { runSearch(query, data, adp, empty); }
+                };
+                handler.postDelayed(pending[0], 300L);
+            }
+        });
+
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override public void onItemClick(AdapterView<?> parent, View v, int pos, long id) {
+                ApiClient.SearchResult r = adp.getItem(pos);
+                if (r == null) return;
+                dlg.dismiss();
+                openSearchResult(r);
+            }
+        });
+    }
+
+    private void runSearch(final String query, final ArrayList<ApiClient.SearchResult> data,
+                           final SearchListAdapter adp, final TextView empty) {
+        final String token = session.token();
+        Async.exec(this, new Async.Worker<List<ApiClient.SearchResult>>() {
+            @Override public List<ApiClient.SearchResult> run() throws Exception {
+                final List<ApiClient.SearchResult>[] holder = new List[1];
+                ApiClient.searchMessages(token, query, convId, 50, new ApiClient.SearchCallback() {
+                    @Override public void on(List<ApiClient.SearchResult> results, Exception err) {
+                        holder[0] = results;
+                    }
+                });
+                return holder[0];
+            }
+        }, new Async.UI<List<ApiClient.SearchResult>>() {
+            @Override public void on(List<ApiClient.SearchResult> results, Exception err) {
+                data.clear();
+                if (results != null) data.addAll(results);
+                adp.notifyDataSetChanged();
+                empty.setVisibility(data.isEmpty() ? View.VISIBLE : View.GONE);
+            }
+        });
+    }
+
+    private void openSearchResult(ApiClient.SearchResult r) {
+        Message msg = new Message(r.id, r.convId, r.senderId, "text", r.body,
+                null, null, 0L, "sent", r.createdAt, null, 0L, 0L, 0L, null);
+        msgMap.put(r.id, msg);
+        refresh();
+        jumpToMessage(r.id);
+    }
+
+    private class SearchListAdapter extends BaseAdapter {
+        private final List<ApiClient.SearchResult> items;
+        SearchListAdapter(List<ApiClient.SearchResult> items) { this.items = items; }
+        @Override public int getCount() { return items.size(); }
+        @Override public ApiClient.SearchResult getItem(int i) { return items.get(i); }
+        @Override public long getItemId(int i) { return i; }
+        @Override public View getView(int i, View cv, ViewGroup p) {
+            if (cv == null) {
+                cv = LayoutInflater.from(DiscussionActivity.this)
+                        .inflate(android.R.layout.simple_list_item_2, p, false);
+            }
+            ApiClient.SearchResult r = getItem(i);
+            TextView t1 = cv.findViewById(android.R.id.text1);
+            TextView t2 = cv.findViewById(android.R.id.text2);
+            String body = r.body == null ? "" : r.body;
+            if (body.length() > 80) body = body.substring(0, 80) + "…";
+            t1.setText(body);
+            t2.setText(fmtTime(r.createdAt));
+            return cv;
+        }
     }
 
     private void applySearch(String qtext) {

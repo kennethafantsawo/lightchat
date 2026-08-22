@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -132,6 +133,58 @@ public final class ApiClient {
             String json = "{\"conv_id\":\"" + esc(convId) + "\",\"typing\":" + typing + "}";
             call("POST", "/api/typing", json, token);
         } catch (Exception ignored) {}
+    }
+
+    public static final class SearchResult {
+        public final String id;
+        public final String convId;
+        public final String senderId;
+        public final String body;
+        public final long createdAt;
+        SearchResult(String id, String convId, String senderId, String body, long createdAt) {
+            this.id = id;
+            this.convId = convId;
+            this.senderId = senderId;
+            this.body = body;
+            this.createdAt = createdAt;
+        }
+    }
+
+    public interface SearchCallback {
+        void on(List<SearchResult> results, Exception err);
+    }
+
+    public static void searchMessages(String token, String query, String convId, int limit, SearchCallback cb) {
+        try {
+            StringBuilder url = new StringBuilder("/api/messages/search?q=");
+            url.append(URLEncoder.encode(query, "UTF-8"));
+            url.append("&limit=").append(limit);
+            if (convId != null && !convId.isEmpty()) {
+                url.append("&conv_id=").append(URLEncoder.encode(convId, "UTF-8"));
+            }
+            ApiResponse r = call("GET", url.toString(), null, token);
+            List<SearchResult> out = new ArrayList<SearchResult>();
+            if (r.status == 200 && r.body != null) {
+                Map<String, Object> o = Json.parseObject(r.body);
+                Object res = o.get("results");
+                if (res instanceof List) {
+                    for (Object x : (List<Object>) res) {
+                        if (!(x instanceof Map)) continue;
+                        @SuppressWarnings("unchecked") Map<String, Object> m = (Map<String, Object>) x;
+                        String id = m.get("id") == null ? "" : String.valueOf(m.get("id"));
+                        String cid = m.get("conv_id") == null ? null : String.valueOf(m.get("conv_id"));
+                        String sid = m.get("sender_id") == null ? null : String.valueOf(m.get("sender_id"));
+                        String body = m.get("body") == null ? "" : String.valueOf(m.get("body"));
+                        long ts = (m.get("created_at") instanceof Number)
+                                ? ((Number) m.get("created_at")).longValue() : 0L;
+                        out.add(new SearchResult(id, cid, sid, body, ts));
+                    }
+                }
+            }
+            cb.on(out, null);
+        } catch (Exception e) {
+            cb.on(new ArrayList<SearchResult>(), e);
+        }
     }
 
     public static Long lastSeen(String token, String userId) {

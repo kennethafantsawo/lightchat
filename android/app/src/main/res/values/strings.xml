@@ -128,7 +128,9 @@
     <string name="pending_empty">Aucune demande en attente.</string>
     <string name="friends_empty">Aucun ami pour l\'instant.</string>
 
-    <string name="search_hint">Rechercher un pseudo…</string>
+    <string name="search_hint">Rechercher dans la conversation</string>
+    <string name="menu_search">Rechercher</string>
+    <string name="no_results">Aucun résultat</string>
     <string name="btn_search">Rechercher</string>
     <string name="search_prompt">Recherche d\'amis par pseudo.</string>
     <string name="status_searching">Recherche…</string>
