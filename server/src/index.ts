@@ -2,7 +2,7 @@ import { createUser, createSession, getUserBySession, publicUser, verifyPassword
 import { searchUser, sendFriendRequest, respondFriendRequest, dmId, myFriends, pendingInvites } from "./friends";
 import { ChatRoom } from "./ChatRoom";
 import { fetchMessages, fetchMessagesSince, markMessagesDelivered, markMessagesRead, convMemberIds, getMessage } from "./db";
-import { sendMessage, myConversations, canAccessConv, editMessage, deleteMessage } from "./messages";
+import { sendMessage, myConversations, canAccessConv, editMessage, deleteMessage, searchMessages } from "./messages";
 import { uploadMedia, readMedia, canAccessMedia, purgeExpired } from "./media";
 import { createGroup, addGroupMember, removeGroupMember, groupInfo } from "./groups";
 import { togglePin, toggleReaction, reactionsForMessages, saveDraft, getDraft } from "./extras";
@@ -174,6 +174,15 @@ export default {
       const res = await editMessage(env, user.id, String(b?.message_id ?? ""), String(b?.body ?? ""));
       if (res.error) return json({ error: res.error }, 400);
       return json({ ok: true, message: res.message });
+    }
+
+    if (path === "/api/messages/search" && req.method === "GET") {
+      const q = url.searchParams.get("q") || "";
+      if (q.trim().length < 2) return json({ error: "Requête trop courte." }, 400);
+      const convId = url.searchParams.get("conv_id") || undefined;
+      const limit = Math.min(50, Number(url.searchParams.get("limit") || 20));
+      const results = await searchMessages(env, user.id, q, convId, limit);
+      return json({ results });
     }
 
     if (path === "/api/messages/delete" && req.method === "POST") {

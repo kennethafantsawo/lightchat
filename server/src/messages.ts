@@ -77,6 +77,29 @@ export async function deleteMessage(env: Env, userId: string, messageId: string)
   return { ok: true };
 }
 
+export async function searchMessages(env: Env, userId: string, q: string, convId?: string, limit = 20) {
+  const match = `"${q.replace(/"/g, '""')}"*`;
+  let sql = `SELECT m.id, m.conv_id, m.sender_id, m.body, m.created_at
+             FROM messages_fts f
+             JOIN messages m ON m.id = f.message_id
+             WHERE messages_fts MATCH ?
+               AND m.conv_id IN (SELECT conv_id FROM conversation_members WHERE user_id = ?)
+             ORDER BY m.created_at DESC LIMIT ?`;
+  let binds: any[] = [match, userId, limit];
+  if (convId) {
+    sql = `SELECT m.id, m.conv_id, m.sender_id, m.body, m.created_at
+           FROM messages_fts f
+           JOIN messages m ON m.id = f.message_id
+           WHERE messages_fts MATCH ?
+             AND f.conv_id = ?
+             AND m.conv_id IN (SELECT conv_id FROM conversation_members WHERE user_id = ?)
+           ORDER BY m.created_at DESC LIMIT ?`;
+    binds = [match, convId, userId, limit];
+  }
+  const rows = await env.DB.prepare(sql).bind(...binds).all();
+  return rows.results as any[];
+}
+
 async function pushToConv(env: Env, convId: string, payload: unknown) {
   const userIds = await convMemberIds(env, convId);
   const globalId = env.CHAT_ROOM.idFromName("global");
