@@ -46,8 +46,13 @@ export async function sendMessage(env: Env, senderId: string, input: {
     expires_at,
   };
   await insertMessage(env, msg);
-  await pushToConv(env, msg.conv_id, { type: "message", message: msg });
+  await pushToConv(env, msg.conv_id, { type: "message", message: msg }, senderId);
   return { ok: true, message: msg };
+}
+
+export async function blockedSet(env: Env, userId: string): Promise<Set<string>> {
+  const rows = await env.DB.prepare(`SELECT blocked_id FROM user_blocks WHERE blocker_id = ?`).bind(userId).all();
+  return new Set((rows.results as any[]).map((r) => r.blocked_id));
 }
 
 export async function editMessage(env: Env, userId: string, messageId: string, newBody: string): Promise<{ error?: string; message?: Message }> {
@@ -100,15 +105,26 @@ export async function searchMessages(env: Env, userId: string, q: string, convId
   return rows.results as any[];
 }
 
-async function pushToConv(env: Env, convId: string, payload: unknown) {
+async function pushToConv(env: Env, convId: string, payload: unknown, senderId?: string) {
   const userIds = await convMemberIds(env, convId);
+  let recipientIds = userIds;
+  if (senderId) {
+    const placeholders = userIds.map(() => "?").join(",");
+    if (placeholders) {
+      const rows = await env.DB.prepare(
+        `SELECT user_id FROM user_blocks WHERE blocked_id = ? AND user_id IN (${placeholders})`
+      ).bind(senderId, ...userIds).all();
+      const blockers = new Set((rows.results as any[]).map((r) => r.user_id));
+      recipientIds = userIds.filter((uid) => !blockers.has(uid));
+    }
+  }
   const globalId = env.CHAT_ROOM.idFromName("global");
   const globalStub = env.CHAT_ROOM.get(globalId);
   // Contrat DO (Task 6) : { userIds, payload } — le DO filtre les destinataires.
   try {
     await globalStub.fetch("https://lightchat/-/push", {
       method: "POST",
-      body: JSON.stringify({ userIds, payload }),
+      body: JSON.stringify({ userIds: recipientIds, payload }),
     });
   } catch {}
 }
@@ -116,19 +132,38 @@ async function pushToConv(env: Env, convId: string, payload: unknown) {
 export async function myConversations(env: Env, userId: string) {
   const rows = await env.DB.prepare(
     `SELECT cm.conv_id, c.kind, c.created_at, c.ephemeral_ttl,
-            (SELECT m.body FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_body,
-            (SELECT m.created_at FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_at,
-            (SELECT m.type FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_type,
-            (SELECT m.id FROM messages m WHERE m.conv_id = c.id AND m.pinned = 1 ORDER BY m.created_at DESC LIMIT 1) as pinned_id,
-            (SELECT m.body FROM messages m WHERE m.conv_id = c.id AND m.pinned = 1 ORDER BY m.created_at DESC LIMIT 1) as pinned_body,
-            (SELECT COUNT(*) FROM messages m2
-               WHERE m2.conv_id = c.id
-                 AND m2.created_at > COALESCE((SELECT up_to FROM last_read lr WHERE lr.conv_id = c.id AND lr.user_id = cm.user_id), 0)
-                 AND m2.sender_id != cm.user_id
-                 AND m2.deleted = 0) as unread
-     FROM conversation_members cm JOIN conversations c ON c.id = cm.conv_id
-     WHERE cm.user_id = ?
-     ORDER BY COALESCE((SELECT m.created_at FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1), c.created_at) DESC`
+             (SELECT m.body FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_body,
+             (SELECT m.created_at FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_at,
+             (SELECT m.type FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_type,
+             (SELECT m.id FROM messages m WHERE m.conv_id = c.id AND m.pinned = 1 ORDER BY m.created_at DESC LIMIT 1) as pinned_id,
+             (SELECT m.body FROM messages m WHERE m.conv_id = c.id AND m.pinned = 1 ORDER BY m.created_at DESC LIMIT 1) as pinned_body,
+             (SELECT COUNT(*) FROM messages m2
+                WHERE m2.conv_id = c.id
+                  AND m2.created_at > COALESCE((SELECT up_to FROM last_read lr WHERE lr.conv_id = c.id AND lr.user_id = cm.user_id), 0)
+                  AND m2.sender_id != cm.user_id
+                  AND m2.deleted = 0) as unread
+      FROM conversation_members cm JOIN conversations c ON c.id = cm.conv_id
+      WHERE cm.user_id = ?
+      ORDER BY COALESCE((SELECT m.created_at FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1), c.created_at) DESC`
   ).bind(userId).all();
-  return rows.results;
+  const results = rows.results as any[];
+  if (!results.length) return [];
+  const blocked = await blockedSet(env, userId);
+  if (blocked.size) {
+    const convIds = results.map((r) => r.conv_id);
+    const placeholders = convIds.map(() => "?").join(",");
+    const memberRows = await env.DB.prepare(
+      `SELECT conv_id, user_id FROM conversation_members WHERE conv_id IN (${placeholders})`
+    ).bind(...convIds).all();
+    const membersByConv: Record<string, string[]> = {};
+    (memberRows.results as any[]).forEach((r) => {
+      (membersByConv[r.conv_id] ||= []).push(r.user_id);
+    });
+    const filtered = results.filter((r) => {
+      const members = membersByConv[r.conv_id] || [];
+      return !members.some((uid: string) => uid !== userId && blocked.has(uid));
+    });
+    return filtered;
+  }
+  return results;
 }

@@ -1,8 +1,8 @@
-import { createUser, createSession, getUserBySession, publicUser, verifyPassword } from "./auth";
+import { createUser, createSession, getUserBySession, publicUser, verifyPassword, makeId } from "./auth";
 import { searchUser, sendFriendRequest, respondFriendRequest, dmId, myFriends, pendingInvites } from "./friends";
 import { ChatRoom } from "./ChatRoom";
 import { fetchMessages, fetchMessagesSince, markMessagesDelivered, markMessagesRead, convMemberIds, getMessage } from "./db";
-import { sendMessage, myConversations, canAccessConv, editMessage, deleteMessage, searchMessages } from "./messages";
+import { sendMessage, myConversations, canAccessConv, editMessage, deleteMessage, searchMessages, blockedSet } from "./messages";
 import { uploadMedia, readMedia, canAccessMedia, purgeExpired } from "./media";
 import { createGroup, addGroupMember, removeGroupMember, groupInfo } from "./groups";
 import { togglePin, toggleReaction, reactionsForMessages, saveDraft, getDraft } from "./extras";
@@ -148,6 +148,39 @@ export default {
       return json({ conversations: await myConversations(env, user.id) });
     }
 
+    if (path === "/api/block" && req.method === "POST") {
+      const b = await readJson(req);
+      if (!b?.user_id) return json({ error: "user_id manquant." }, 400);
+      await env.DB.prepare(`INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id, created_at) VALUES (?, ?, ?)`)
+        .bind(user.id, b.user_id, Date.now()).run();
+      return json({ ok: true });
+    }
+
+    const blockDelMatch = path.match(/^\/api\/block\/([^/]+)$/);
+    if (blockDelMatch && req.method === "DELETE") {
+      const blockedId = decodeURIComponent(blockDelMatch[1]);
+      await env.DB.prepare(`DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?`)
+        .bind(user.id, blockedId).run();
+      return json({ ok: true });
+    }
+
+    if (path === "/api/blocks" && req.method === "GET") {
+      const rows = await env.DB.prepare(
+        `SELECT ub.blocked_id, u.username, u.display_name, u.avatar_url
+         FROM user_blocks ub JOIN users u ON u.id = ub.blocked_id
+         WHERE ub.blocker_id = ? ORDER BY ub.created_at DESC`
+      ).bind(user.id).all();
+      return json({ blocks: rows.results });
+    }
+
+    if (path === "/api/report" && req.method === "POST") {
+      const b = await readJson(req);
+      if (!b?.message_id || !b?.conv_id || !b?.reason) return json({ error: "Champs requis manquants." }, 400);
+      await env.DB.prepare(`INSERT INTO message_reports (id, reporter_id, message_id, conv_id, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)`)
+        .bind(makeId(), user.id, b.message_id, b.conv_id, b.reason, Date.now()).run();
+      return json({ ok: true });
+    }
+
     if (path === "/api/messages" && req.method === "GET") {
       const convId = url.searchParams.get("conv_id") || "";
       const beforeParam = url.searchParams.get("before");
@@ -162,6 +195,10 @@ export default {
         list = await fetchMessages(env, convId, beforeParam ? Number(beforeParam) : null);
         await markMessagesDelivered(env, convId, Date.now(), user.id);
         list = list.reverse();
+      }
+      const blocked = await blockedSet(env, user.id);
+      if (blocked.size) {
+        list = list.filter((m) => m.sender_id === user.id || m.type === "system" || !blocked.has(m.sender_id));
       }
       const ids = list.map((m) => m.id);
       const reactions = await reactionsForMessages(env, ids);
