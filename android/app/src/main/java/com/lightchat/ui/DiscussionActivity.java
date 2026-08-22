@@ -111,7 +111,7 @@ public class DiscussionActivity extends Activity {
     private File voiceFile;
     private long recStartMs;
 
-    private final LruCache<String, Bitmap> bmpCache = new LruCache<String, Bitmap>(6 * 1024 * 1024) {
+    private final LruCache<String, Bitmap> bmpCache = new LruCache<String, Bitmap>(64 * 1024 * 1024) {
         @Override protected int sizeOf(String key, Bitmap value) {
             return value.getByteCount();
         }
@@ -1237,6 +1237,20 @@ public class DiscussionActivity extends Activity {
 
     // ---------- List ----------
 
+    private void jumpToMessage(String id) {
+        int pos = adapter.indexOf(id);
+        if (pos >= 0) {
+            list.setSelection(pos);
+            Message target = adapter.getItem(pos);
+            if (target != null) flash(target.id);
+        }
+    }
+
+    private void flash(String id) {
+        View v = list.getChildAt(adapter.indexOf(id) - list.getFirstVisiblePosition());
+        if (v != null) v.startAnimation(AnimationUtils.loadAnimation(this, R.anim.scale_in));
+    }
+
     private void refresh() {
         List<Message> all = new ArrayList<Message>(msgMap.values());
         Collections.sort(all, new Comparator<Message>() {
@@ -1488,6 +1502,13 @@ public class DiscussionActivity extends Activity {
 
         void setList(List<Message> l) { msgs = l; }
 
+        int indexOf(String id) {
+            for (int i = 0; i < msgs.size(); i++) {
+                if (id.equals(msgs.get(i).id)) return i;
+            }
+            return -1;
+        }
+
         @Override public int getCount() { return msgs.size(); }
         @Override public Message getItem(int i) { return msgs.get(i); }
         @Override public long getItemId(int i) { return i; }
@@ -1560,6 +1581,8 @@ public class DiscussionActivity extends Activity {
                 default: {
                     TextView bubble = convertView.findViewById(R.id.bubble_text);
                     bubble.setText(display(m));
+                    bubble.setAutoLinkMask(android.text.util.Linkify.WEB_URLS);
+                    bubble.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
                     break;
                 }
             }
@@ -1614,8 +1637,15 @@ public class DiscussionActivity extends Activity {
                 reply.setText(preview(quoted));
                 reply.setVisibility(View.VISIBLE);
                 reply.setTextColor(isMine(m) ? Skin.palette().onSurfaceVariant : Skin.palette().onSurface);
+                final String jumpId = quoted.id;
+                reply.setClickable(true);
+                reply.setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(View v) { jumpToMessage(jumpId); }
+                });
             } else {
                 reply.setVisibility(View.GONE);
+                reply.setClickable(false);
+                reply.setOnClickListener(null);
             }
         }
         TextView meta = root.findViewById(R.id.msg_meta);
