@@ -1,7 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Telegram spacing scale — 4dp base -->
+    <dimen name="spacing_4">4dp</dimen>
+    <dimen name="spacing_8">8dp</dimen>
+    <dimen name="spacing_12">12dp</dimen>
+    <dimen name="spacing_16">16dp</dimen>
+    <dimen name="spacing_20">20dp</dimen>
+    <dimen name="spacing_24">24dp</dimen>
+    <dimen name="spacing_32">32dp</dimen>
+    <dimen name="spacing_48">48dp</dimen>
+
+    <!-- Legacy / layout compat -->
     <dimen name="screen_padding">16dp</dimen>
-    <dimen name="radius_card">16dp</dimen>
+
+    <!-- Telegram radii — premium -->
+    <dimen name="radius_card">12dp</dimen>
+    <dimen name="radius_card_large">16dp</dimen>
+    <dimen name="radius_bubble">18dp</dimen>
+    <dimen name="radius_bubble_small">12dp</dimen>
+    <dimen name="radius_input">24dp</dimen>
+    <dimen name="radius_avatar">20dp</dimen>
+    <dimen name="radius_avatar_large">28dp</dimen>
+    <dimen name="radius_badge">999dp</dimen>
+    <dimen name="radius_chip">20dp</dimen>
+    <dimen name="radius_fab">16dp</dimen>
+    <dimen name="radius_bottom_sheet">16dp</dimen>
+
+    <!-- Elevation — Telegram subtle -->
+    <dimen name="elevation_none">0dp</dimen>
+    <dimen name="elevation_card">2dp</dimen>
+    <dimen name="elevation_appbar">4dp</dimen>
+    <dimen name="elevation_fab">6dp</dimen>
+
+    <!-- Avatar & component sizes -->
+    <dimen name="avatar_size">40dp</dimen>
+    <dimen name="avatar_size_small">32dp</dimen>
+    <dimen name="avatar_size_large">56dp</dimen>
+    <dimen name="input_height">48dp</dimen>
+    <dimen name="toolbar_height">56dp</dimen>
+    <dimen name="fab_size">56dp</dimen>
+    <dimen name="bottom_nav_height">56dp</dimen>
+    <dimen name="divider_height">1dp</dimen>
+    <dimen name="icon_size">24dp</dimen>
+    <dimen name="icon_size_small">20dp</dimen>
+
+    <!-- Telegram text scale -->
+    <dimen name="text_caption">12sp</dimen>
+    <dimen name="text_caption_small">11sp</dimen>
+    <dimen name="text_body">15sp</dimen>
+    <dimen name="text_body_large">16sp</dimen>
     <dimen name="text_title">20sp</dimen>
-    <dimen name="text_body">16sp</dimen>
+    <dimen name="text_title_small">17sp</dimen>
+    <dimen name="text_headline">24sp</dimen>
+    <dimen name="text_label">14sp</dimen>
+    <dimen name="text_label_small">12sp</dimen>
+    <dimen name="text_time">11sp</dimen>
+
+    <!-- Telegram-specific -->
+    <dimen name="bubble_max_width">320dp</dimen>
+    <dimen name="bubble_padding">8dp</dimen>
+    <dimen name="message_spacing">4dp</dimen>
 </resources>

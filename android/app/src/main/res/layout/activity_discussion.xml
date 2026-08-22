@@ -1,10 +1,165 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/transparent">
+    android:background="@color/surface_dim">
 
+    <!-- ===== Telegram-style Toolbar 56dp ===== -->
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/toolbar_height"
+        android:minHeight="@dimen/toolbar_height"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/surface"
+        android:elevation="@dimen/elevation_appbar"
+        android:paddingStart="4dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <ImageView
+            android:id="@+id/btn_back"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_back"
+            android:tint="@color/primary"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/back" />
+
+        <FrameLayout
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="10dp">
+
+            <TextView
+                android:id="@+id/avatar_disc"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:gravity="center"
+                android:textColor="#FFFFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_avatar" />
+
+            <View
+                android:id="@+id/disc_online_dot"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_gravity="bottom|end"
+                android:layout_marginEnd="-1dp"
+                android:layout_marginBottom="-1dp"
+                android:background="@drawable/bg_online_dot"
+                android:elevation="2dp"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/txt_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="@string/app_name"
+                android:textColor="@color/on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:letterSpacing="-0.01" />
+
+            <TextView
+                android:id="@+id/txt_presence"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="12sp"
+                android:textColor="@color/on_surface_variant"
+                android:alpha="0.95"
+                tools:text="en ligne" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txt_disc_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:visibility="gone"
+            android:background="@drawable/bg_badge"
+            android:textColor="@color/on_badge"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <!-- Call icon (Telegram-like) -->
+        <ImageView
+            android:id="@+id/btn_call"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="9dp"
+            android:src="@drawable/ic_notif"
+            android:tint="@color/on_surface_variant"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:visibility="gone"
+            android:contentDescription="Call" />
+
+        <TextView
+            android:id="@+id/btn_search_disc"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:text="@string/disc_search"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/btn_mute"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:text="@string/bell_on"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/btn_ephemeral"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:text="🔥"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="16sp" />
+
+        <ImageView
+            android:id="@+id/btn_menu"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="10dp"
+            android:src="@drawable/ic_add"
+            android:tint="@color/on_surface_variant"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:visibility="gone"
+            android:contentDescription="Menu" />
+    </LinearLayout>
+
+    <!-- Pinned banner — Telegram chip -->
     <LinearLayout
         android:id="@+id/pinned_banner"
         android:layout_width="match_parent"
@@ -12,11 +167,18 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:visibility="gone"
-        android:background="@drawable/bg_chip_ripple">
+        android:background="@color/surface"
+        android:elevation="1dp">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="32dp"
+            android:background="@color/reply_accent"
+            android:layout_marginEnd="10dp" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -33,139 +195,18 @@
             android:ellipsize="end"
             android:textColor="@color/on_surface"
             android:textSize="13sp"
-            android:layout_marginStart="6dp" />
+            android:layout_marginStart="6dp"
+            android:lineSpacingExtra="2dp" />
 
         <TextView
             android:id="@+id/pinned_close"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:text="@string/disc_cancel"
-            android:textColor="@color/on_surface"
-            android:textSize="16sp" />
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/typing_banner"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:visibility="gone"
-        android:background="@drawable/bg_chip_ripple"
-        android:textColor="@color/on_surface_variant"
-        android:textSize="13sp"
-        android:padding="8dp" />
-
-    <LinearLayout
-        android:id="@+id/header"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:padding="8dp">
-
-        <ImageView
-            android:id="@+id/btn_back"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:padding="8dp"
-            android:src="@drawable/ic_back"
-            android:tint="@color/primary"
-            android:contentDescription="@string/back" />
-
-        <FrameLayout
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="6dp">
-
-            <TextView
-                android:id="@+id/avatar_disc"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:textColor="#ffffffff"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:background="@drawable/bg_avatar" />
-
-            <View
-                android:id="@+id/disc_online_dot"
-                android:layout_width="11dp"
-                android:layout_height="11dp"
-                android:layout_gravity="bottom|end"
-                android:background="@drawable/bg_online_dot"
-                android:visibility="gone" />
-        </FrameLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:padding="4dp">
-
-            <TextView
-                android:id="@+id/txt_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:text="@string/app_name"
-                android:textColor="@color/on_surface"
-                android:textSize="@dimen/text_title"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/txt_presence"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="12sp"
-                android:textColor="@color/on_surface_variant" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/txt_disc_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="4dp"
-            android:padding="4dp"
-            android:visibility="gone"
-            android:textColor="@color/error"
-            android:textSize="12sp" />
-
-        <TextView
-            android:id="@+id/btn_search_disc"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:gravity="center"
-            android:background="@drawable/bg_chip_ripple"
-            android:text="@string/disc_search"
-            android:textColor="@color/on_surface"
-            android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/btn_mute"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="4dp"
-            android:gravity="center"
-            android:background="@drawable/bg_chip_ripple"
-            android:text="@string/bell_on"
-            android:textColor="@color/on_surface"
-            android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/btn_ephemeral"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="4dp"
-            android:gravity="center"
-            android:background="@drawable/bg_chip_ripple"
-            android:text="\uD83D\uDD25"
-            android:textColor="@color/on_surface"
-            android:textSize="16sp" />
+            android:textColor="@color/on_surface_variant"
+            android:textSize="14sp" />
     </LinearLayout>
 
     <TextView
@@ -174,34 +215,110 @@
         android:layout_height="wrap_content"
         android:visibility="gone"
         android:gravity="center"
-        android:padding="6dp"
+        android:padding="8dp"
         android:textColor="@color/on_surface"
         android:textSize="12sp"
-        android:background="@drawable/bg_chip_ripple" />
+        android:background="#FFF6E8" />
 
+    <!-- ===== Messages wallpaper area ===== -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:background="@color/surface_dim">
+
+        <!-- Subtle Telegram wallpaper pattern overlay (solid + faint dots) -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#0D000000"
+            android:alpha="0.04" />
 
         <TextView
             android:id="@+id/txt_empty"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:gravity="center"
             android:text="@string/msg_empty"
             android:textColor="@color/on_surface_variant"
-            android:padding="24dp" />
+            android:textSize="14sp"
+            android:alpha="0.8"
+            android:padding="24dp"
+            android:background="@drawable/bg_chip_ripple"
+            android:elevation="0dp" />
 
         <ListView
             android:id="@+id/msg_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:divider="#00000000"
-            android:dividerHeight="2dp" />
+            android:divider="@android:color/transparent"
+            android:dividerHeight="4dp"
+            android:clipToPadding="false"
+            android:padding="8dp"
+            android:paddingBottom="4dp"
+            android:scrollbarStyle="outsideOverlay"
+            android:scrollbars="vertical"
+            android:fadeScrollbars="true" />
+
+        <!-- Typing indicator — Telegram dots inside bubble -->
+        <LinearLayout
+            android:id="@+id/typing_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="12dp"
+            android:layout_marginBottom="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone"
+            android:background="@drawable/bg_input"
+            android:elevation="1dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:background="@drawable/bg_online_dot"
+                android:alpha="0.9" />
+
+            <TextView
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_online_dot"
+                android:alpha="0.6" />
+
+            <TextView
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_online_dot"
+                android:alpha="0.35" />
+        </LinearLayout>
+
+        <!-- Fallback typing banner (kept for compat) -->
+        <TextView
+            android:id="@+id/typing_banner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone"
+            android:background="@drawable/bg_chip_ripple"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="12sp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp" />
     </FrameLayout>
 
+    <!-- Edit bar -->
     <LinearLayout
         android:id="@+id/edit_bar"
         android:layout_width="match_parent"
@@ -209,10 +326,18 @@
         android:orientation="horizontal"
         android:visibility="gone"
         android:gravity="center_vertical"
+        android:background="@color/surface_container_high"
         android:paddingStart="12dp"
         android:paddingEnd="4dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp">
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:elevation="1dp">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="28dp"
+            android:background="@color/primary"
+            android:layout_marginEnd="10dp" />
 
         <TextView
             android:id="@+id/edit_label"
@@ -226,15 +351,77 @@
 
         <TextView
             android:id="@+id/edit_cancel"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:gravity="center"
-            android:background="@drawable/bg_chip_ripple"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:text="@string/disc_cancel"
-            android:textColor="@color/on_surface"
+            android:textColor="@color/on_surface_variant"
             android:textSize="16sp" />
     </LinearLayout>
 
+    <!-- Reply preview bar above input (Telegram) -->
+    <LinearLayout
+        android:id="@+id/reply_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone"
+        android:background="@color/surface"
+        android:paddingStart="12dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:elevation="1dp">
+
+        <View
+            android:id="@+id/reply_accent"
+            android:layout_width="3dp"
+            android:layout_height="36dp"
+            android:background="@color/reply_accent" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="10dp">
+
+            <TextView
+                android:id="@+id/reply_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/primary"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                tools:text="Reply to Alex" />
+
+            <TextView
+                android:id="@+id/reply_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="13sp"
+                tools:text="Original message preview…" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/reply_close"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:text="@string/disc_cancel"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <!-- Selection bar -->
     <LinearLayout
         android:id="@+id/selection_bar"
         android:layout_width="match_parent"
@@ -243,7 +430,8 @@
         android:gravity="center_vertical"
         android:visibility="gone"
         android:padding="8dp"
-        android:background="@drawable/bg_chip_ripple">
+        android:background="@color/surface"
+        android:elevation="4dp">
 
         <TextView
             android:id="@+id/selection_count"
@@ -260,9 +448,9 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:gravity="center"
-            android:background="@drawable/bg_chip_ripple"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:text="@string/act_copy"
-            android:textColor="@color/on_surface"
+            android:textColor="@color/primary"
             android:textSize="13sp" />
 
         <TextView
@@ -271,9 +459,9 @@
             android:layout_height="40dp"
             android:layout_marginStart="6dp"
             android:gravity="center"
-            android:background="@drawable/bg_chip_ripple"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:text="@string/act_forward"
-            android:textColor="@color/on_surface"
+            android:textColor="@color/primary"
             android:textSize="13sp" />
 
         <TextView
@@ -282,9 +470,9 @@
             android:layout_height="40dp"
             android:layout_marginStart="6dp"
             android:gravity="center"
-            android:background="@drawable/bg_chip_ripple"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:text="@string/act_delete"
-            android:textColor="@color/on_surface"
+            android:textColor="@color/error"
             android:textSize="13sp" />
 
         <TextView
@@ -293,88 +481,119 @@
             android:layout_height="40dp"
             android:layout_marginStart="6dp"
             android:gravity="center"
-            android:background="@drawable/bg_chip_ripple"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:text="@string/disc_cancel"
-            android:textColor="@color/on_surface"
+            android:textColor="@color/on_surface_variant"
             android:textSize="16sp" />
     </LinearLayout>
 
+    <!-- ===== Input bar Telegram — 48-56dp pill ===== -->
     <LinearLayout
         android:id="@+id/input_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="52dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="8dp">
+        android:background="@color/surface"
+        android:elevation="4dp"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp">
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/btn_plus"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:gravity="center"
-                android:background="@drawable/bg_chip_ripple"
-                android:text="@string/btn_plus"
-                android:textColor="@color/on_surface" />
-
-            <TextView
-                android:id="@+id/btn_emoji"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="6dp"
-                android:gravity="center"
-                android:background="@drawable/bg_chip_ripple"
-                android:text="@string/btn_emoji"
-                android:textColor="@color/on_surface" />
-
-            <TextView
-                android:id="@+id/btn_sticker"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="6dp"
-                android:gravity="center"
-                android:background="@drawable/bg_chip_ripple"
-                android:text="@string/btn_sticker"
-                android:textColor="@color/on_surface" />
-
-            <TextView
-                android:id="@+id/btn_mic"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:minWidth="48dp"
-                android:layout_marginStart="6dp"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:background="@drawable/bg_chip_ripple"
-                android:text="@string/btn_mic"
-                android:textColor="@color/on_surface" />
-        </LinearLayout>
+        <TextView
+            android:id="@+id/btn_plus"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:text="@string/btn_plus"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="22sp"
+            android:fontFamily="sans-serif-light" />
 
         <com.lightchat.widget.EmojiEditText
             android:id="@+id/input_msg"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="@string/msg_hint"
-            android:padding="12dp"
+            android:minHeight="40dp"
+            android:maxHeight="120dp"
+            android:hint="Message"
+            android:paddingStart="16dp"
+            android:paddingEnd="44dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
             android:background="@drawable/bg_input"
             android:textColor="@color/on_surface"
-            android:textColorHint="@color/on_surface_variant"
-            android:inputType="textMultiLine" />
+            android:textColorHint="#8A707991"
+            android:textSize="15sp"
+            android:lineSpacingExtra="2dp"
+            android:inputType="textMultiLine|textCapSentences"
+            android:imeOptions="actionSend"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp" />
 
-        <Button
-            android:id="@+id/btn_send"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="@string/send"
-            android:background="@drawable/bg_btn_primary_ripple"
-            android:textColor="@color/on_primary" />
+        <!-- Emoji inside input overlap trick via negative margin wrapper -->
+        <FrameLayout
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="-48dp"
+            android:layout_marginEnd="4dp">
+
+            <TextView
+                android:id="@+id/btn_emoji"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:gravity="center"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:text="@string/btn_emoji"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="20sp" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/btn_sticker"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:text="@string/btn_sticker"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="16sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/btn_mic"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:text="@string/btn_mic"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <!-- Send FAB circle 44dp -->
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="2dp">
+
+            <Button
+                android:id="@+id/btn_send"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_btn_primary_ripple"
+                android:text="➤"
+                android:textColor="@color/on_primary"
+                android:textSize="18sp"
+                android:stateListAnimator="@null"
+                android:elevation="2dp" />
+        </FrameLayout>
     </LinearLayout>
 
     <HorizontalScrollView
@@ -382,14 +601,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:visibility="gone"
-        android:scrollbars="none">
+        android:scrollbars="none"
+        android:background="@color/surface"
+        android:elevation="2dp">
 
         <LinearLayout
             android:id="@+id/emoji_container"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="4dp" />
+            android:padding="8dp" />
     </HorizontalScrollView>
 
     <LinearLayout
@@ -399,32 +620,42 @@
         android:orientation="vertical"
         android:visibility="gone"
         android:background="@color/surface"
+        android:elevation="4dp"
         android:padding="6dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:paddingBottom="4dp">
+            android:paddingBottom="8dp">
 
             <TextView
                 android:id="@+id/tab_stickers"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:padding="8dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
                 android:text="@string/tab_stickers"
-                android:textColor="@color/on_surface"
-                android:background="@drawable/bg_chip_ripple" />
+                android:textColor="@color/on_primary"
+                android:background="@drawable/bg_btn_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tab_gif"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:padding="8dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
                 android:text="@string/tab_gif"
-                android:textColor="@color/on_surface"
-                android:background="@drawable/bg_chip_ripple" />
+                android:textColor="@color/on_surface_variant"
+                android:background="@drawable/bg_chip_ripple"
+                android:textSize="13sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -474,7 +705,8 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
                 <com.lightchat.widget.EmojiEditText
                     android:id="@+id/gif_query"
@@ -485,17 +717,19 @@
                     android:textColor="@color/on_surface"
                     android:textColorHint="@color/on_surface_variant"
                     android:inputType="text"
-                    android:padding="8dp"
-                    android:background="@drawable/bg_input" />
+                    android:padding="10dp"
+                    android:background="@drawable/bg_input"
+                    android:textSize="14sp" />
 
                 <Button
                     android:id="@+id/gif_search"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
                     android:text="@string/gif_search_btn"
                     android:background="@drawable/bg_btn_primary_ripple"
-                    android:textColor="@color/on_primary" />
+                    android:textColor="@color/on_primary"
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <GridView
@@ -507,7 +741,9 @@
                 android:verticalSpacing="4dp"
                 android:horizontalSpacing="4dp"
                 android:stretchMode="columnWidth"
-                android:visibility="gone" />
+                android:visibility="gone"
+                android:clipToPadding="false"
+                android:paddingTop="8dp" />
 
             <TextView
                 android:id="@+id/gif_empty"

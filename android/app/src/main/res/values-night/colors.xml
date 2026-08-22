@@ -1,28 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="background">#13121b</color>
-    <color name="primary">#c3c0ff</color>
-    <color name="on_primary">#1d00a5</color>
-    <color name="primary_container">#4f46e5</color>
-    <color name="on_primary_container">#dad7ff</color>
-    <color name="secondary">#4edea3</color>
-    <color name="secondary_container">#00b47d</color>
-    <color name="on_secondary_container">#003e28</color>
-    <color name="error">#ffb4ab</color>
-    <color name="on_surface">#f8f9ff</color>
-    <color name="on_surface_variant">#c7c4d8</color>
-    <color name="surface">#0b111a</color>
-    <color name="surface_variant">#35343e</color>
-    <color name="surface_container_low">#1b1b24</color>
-    <color name="surface_container">#1f1f28</color>
-    <color name="surface_container_high">#23293b</color>
-    <color name="surface_dim">#0b111a</color>
-    <color name="outline">#334155</color>
-    <color name="outline_variant">#464555</color>
-    <color name="inverse_surface">#e4e1ee</color>
-    <color name="inverse_primary">#4d44e3</color>
-    <color name="tertiary">#ffb95f</color>
-    <color name="surface_tint">#c3c0ff</color>
-    <color name="ic_launcher_bg">#c3c0ff</color>
-    <color name="ic_launcher_fg">#1d00a5</color>
+    <!-- Telegram Dark Palette — #17212B / #0E1621 / #2B5278 -->
+    <color name="background">#0E1621</color>
+    <color name="primary">#2B5278</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#224264</color>
+    <color name="on_primary_container">#AAB8C2</color>
+    <color name="secondary">#5288C1</color>
+    <color name="secondary_container">#2B5278</color>
+    <color name="on_secondary_container">#FFFFFF</color>
+    <color name="error">#FF5252</color>
+    <color name="on_surface">#F5F5F5</color>
+    <color name="on_surface_variant">#AAB8C2</color>
+    <color name="surface">#17212B</color>
+    <color name="surface_variant">#25303E</color>
+    <color name="surface_container_low">#0E1621</color>
+    <color name="surface_container">#17212B</color>
+    <color name="surface_container_high">#242F3D</color>
+    <color name="surface_dim">#0E1621</color>
+    <color name="outline">#2F4154</color>
+    <color name="outline_variant">#25303E</color>
+    <color name="inverse_surface">#FFFFFF</color>
+    <color name="inverse_primary">#2AABEE</color>
+    <color name="tertiary">#FFB74D</color>
+    <color name="surface_tint">#2B5278</color>
+    <color name="ic_launcher_bg">#17212B</color>
+    <color name="ic_launcher_fg">#2AABEE</color>
+
+    <!-- Extended dark tokens -->
+    <color name="bubble_outgoing">#2B5278</color>
+    <color name="bubble_incoming">#182533</color>
+    <color name="divider">#242F3D</color>
+    <color name="scrim">#66000000</color>
+    <color name="badge">#FF5252</color>
+    <color name="on_badge">#FFFFFF</color>
+    <color name="fab_container">#2B5278</color>
+    <color name="on_fab">#FFFFFF</color>
+    <color name="reply_accent">#5288C1</color>
+    <color name="surface_input">#242F3D</color>
+    <color name="online_green">#2ECC71</color>
 </resources>

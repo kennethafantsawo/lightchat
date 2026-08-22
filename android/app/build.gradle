@@ -65,4 +65,35 @@ dependencies {
     implementation "androidx.emoji2:emoji2:1.5.0"
     implementation "androidx.emoji2:emoji2-bundled:1.5.0"
     implementation "androidx.emoji2:emoji2-views-helper:1.5.0"
+
+    // --- Telegram premium polish (heavy, 200Mo ok) ---
+    // Lottie animations premium
+    implementation "com.airbnb.android:lottie:6.1.0"
+
+    // Shimmer loading effect (Telegram skeleton)
+    implementation "com.facebook.shimmer:shimmer:0.5.0"
+
+    // RecyclerView & CardView (bubbles, lists)
+    implementation "androidx.recyclerview:recyclerview:1.3.2"
+    implementation "androidx.cardview:cardview:1.0.0"
+
+    // ConstraintLayout (Telegram complex layouts)
+    implementation "androidx.constraintlayout:constraintlayout:2.1.4"
+
+    // AppCompat (Material3 DayNight requirement)
+    implementation "androidx.appcompat:appcompat:1.6.1"
+    implementation "androidx.core:core:1.12.0"
+
+    // Lifecycle (ViewModel, LiveData, Runtime)
+    implementation "androidx.lifecycle:lifecycle-runtime:2.7.0"
+    implementation "androidx.lifecycle:lifecycle-viewmodel:2.7.0"
+    implementation "androidx.lifecycle:lifecycle-livedata:2.7.0"
+    implementation "androidx.lifecycle:lifecycle-process:2.7.0"
+
+    // Additional polish
+    implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0"
+    implementation "androidx.viewpager2:viewpager2:1.1.0"
+    implementation "androidx.fragment:fragment:1.6.2"
+    implementation "androidx.activity:activity:1.8.2"
+    implementation "com.google.android.material:material:1.12.0"
 }

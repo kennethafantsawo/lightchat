@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/transparent"
+    android:background="#F5F7F8"
     android:fillViewport="true"
     android:clipToPadding="false"
     android:paddingBottom="80dp">
@@ -11,180 +11,337 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="12dp">
 
+        <!-- ===== USER CARD 72dp avatar ===== -->
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/settings_label"
-            android:textColor="@color/on_surface"
-            android:textSize="@dimen/text_title"
-            android:textStyle="bold"
-            android:paddingBottom="12dp" />
+            android:text="PROFIL"
+            android:textColor="#2AABEE"
+            android:textSize="12sp"
+            android:letterSpacing="0.08"
+            android:textAllCaps="true"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="4dp"
+            android:paddingBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/user_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_card_settings"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <!-- Avatar 72dp -->
+            <TextView
+                android:id="@+id/avatar_preview"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:gravity="center"
+                android:background="@drawable/bg_avatar"
+                android:textColor="@color/on_primary"
+                android:textSize="24sp"
+                android:fontFamily="sans-serif-medium"
+                android:text="?" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/set_username"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/on_surface"
+                    android:textSize="17sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/set_userid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="13sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <Button
+                    android:id="@+id/btn_avatar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_btn_primary"
+                    android:gravity="center"
+                    android:minHeight="36dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="@string/settings_avatar"
+                    android:textAllCaps="false"
+                    android:textColor="@color/on_primary"
+                    android:textSize="13sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:stateListAnimator="@null" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ===== THEME ===== -->
+        <TextView
+            android:id="@+id/theme_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/theme_label"
+            android:textColor="#2AABEE"
+            android:textSize="12sp"
+            android:letterSpacing="0.08"
+            android:textAllCaps="true"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="4dp"
+            android:paddingBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card_settings"
+            android:orientation="vertical"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp">
+
+            <!-- rows 56dp will be inflated inside theme_list -->
+            <LinearLayout
+                android:id="@+id/theme_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+
+        <!-- ===== PRIVACY — switches ===== -->
+        <TextView
+            android:id="@+id/privacy_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/privacy_label"
+            android:textColor="#2AABEE"
+            android:textSize="12sp"
+            android:letterSpacing="0.08"
+            android:textAllCaps="true"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="4dp"
+            android:paddingBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card_settings"
+            android:orientation="vertical"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:id="@+id/privacy_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+
+        <!-- ===== BLOCKED ===== -->
+        <TextView
+            android:id="@+id/blocked_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/blocked_header"
+            android:textColor="#2AABEE"
+            android:textSize="12sp"
+            android:letterSpacing="0.08"
+            android:textAllCaps="true"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="4dp"
+            android:paddingBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card_settings"
             android:orientation="vertical"
             android:padding="12dp"
             android:layout_marginBottom="16dp">
 
-            <TextView
-                android:id="@+id/set_username"
+            <LinearLayout
+                android:id="@+id/blocked_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/on_surface"
-                android:textSize="@dimen/text_body"
-                android:textStyle="bold"
-                android:paddingBottom="4dp" />
+                android:orientation="vertical" />
 
             <TextView
-                android:id="@+id/set_userid"
+                android:id="@+id/blocked_empty"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
+                android:gravity="center"
+                android:text="@string/blocked_empty"
                 android:textColor="@color/on_surface_variant"
-                android:textSize="12sp" />
-
-            <Button
-                android:id="@+id/btn_avatar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="@string/settings_avatar"
-                android:background="@drawable/bg_btn_primary_ripple"
-                android:textColor="@color/on_primary" />
+                android:textSize="13sp"
+                android:visibility="gone" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/theme_header"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/theme_label"
-            android:textColor="@color/on_surface"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
-
-        <LinearLayout
-            android:id="@+id/theme_list"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="16dp" />
-
-        <TextView
-            android:id="@+id/privacy_header"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/privacy_label"
-            android:textColor="@color/on_surface"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
-
-        <LinearLayout
-            android:id="@+id/privacy_list"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="16dp" />
-
-        <TextView
-            android:id="@+id/blocked_header"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/blocked_header"
-            android:textColor="@color/on_surface"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
-
-        <LinearLayout
-            android:id="@+id/blocked_list"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="16dp" />
-
-        <TextView
-            android:id="@+id/blocked_empty"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/blocked_empty"
-            android:textColor="@color/on_surface_variant"
-            android:textSize="13sp"
-            android:visibility="gone" />
-
+        <!-- ===== BACKUP hiérarchie ===== -->
         <TextView
             android:id="@+id/backup_header"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/backup_section"
-            android:textColor="@color/on_surface"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:textColor="#2AABEE"
+            android:textSize="12sp"
+            android:letterSpacing="0.08"
+            android:textAllCaps="true"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="4dp"
+            android:paddingBottom="8dp" />
 
         <LinearLayout
             android:id="@+id/backup_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
+            android:background="@drawable/bg_card_settings"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             android:layout_marginBottom="16dp">
 
+            <!-- rows 56dp hiérarchie -->
             <Button
                 android:id="@+id/btn_backup_export"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
+                android:layout_height="56dp"
+                android:minHeight="56dp"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:drawableStart="@android:drawable/ic_menu_upload"
+                android:drawablePadding="12dp"
                 android:text="@string/backup_export"
-                android:background="@drawable/bg_btn_primary_ripple"
-                android:textColor="@color/on_primary" />
+                android:textAllCaps="false"
+                android:textColor="@color/on_surface"
+                android:textSize="15sp"
+                android:background="@drawable/bg_item_ripple"
+                android:stateListAnimator="@null" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:layout_marginStart="52dp"
+                android:background="@color/divider" />
 
             <Button
                 android:id="@+id/btn_backup_import"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
+                android:layout_height="56dp"
+                android:minHeight="56dp"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:drawableStart="@android:drawable/ic_menu_upload"
+                android:drawablePadding="12dp"
                 android:text="@string/backup_import"
-                android:background="@drawable/bg_btn_primary_ripple"
-                android:textColor="@color/on_primary" />
+                android:textAllCaps="false"
+                android:textColor="@color/on_surface"
+                android:textSize="15sp"
+                android:background="@drawable/bg_item_ripple"
+                android:stateListAnimator="@null" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:layout_marginStart="52dp"
+                android:background="@color/divider" />
 
             <Button
                 android:id="@+id/btn_backup_sync"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
+                android:layout_height="56dp"
+                android:minHeight="56dp"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:drawableStart="@android:drawable/ic_popup_sync"
+                android:drawablePadding="12dp"
                 android:text="@string/backup_sync"
-                android:background="@drawable/bg_btn_primary_ripple"
-                android:textColor="@color/on_primary" />
+                android:textAllCaps="false"
+                android:textColor="#2AABEE"
+                android:textSize="15sp"
+                android:fontFamily="sans-serif-medium"
+                android:background="@drawable/bg_item_ripple"
+                android:stateListAnimator="@null" />
         </LinearLayout>
 
-        <Button
-            android:id="@+id/btn_save_media"
+        <!-- ===== ACTIONS carte ===== -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="@string/settings_save_media"
-            android:background="@drawable/bg_btn_primary_ripple"
-            android:textColor="@color/on_primary" />
+            android:background="@drawable/bg_card_settings"
+            android:orientation="vertical"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="12dp">
 
-        <Button
-            android:id="@+id/btn_clear_cache"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="@string/settings_clear_cache"
-            android:background="@drawable/bg_btn_primary_ripple"
-            android:textColor="@color/on_primary" />
+            <Button
+                android:id="@+id/btn_save_media"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:minHeight="56dp"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:drawableStart="@android:drawable/ic_menu_save"
+                android:drawablePadding="12dp"
+                android:text="@string/settings_save_media"
+                android:textAllCaps="false"
+                android:textColor="@color/on_surface"
+                android:textSize="15sp"
+                android:background="@drawable/bg_item_ripple"
+                android:stateListAnimator="@null" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:layout_marginStart="52dp"
+                android:background="@color/divider" />
+
+            <Button
+                android:id="@+id/btn_clear_cache"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:minHeight="56dp"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:drawableStart="@android:drawable/ic_menu_delete"
+                android:drawablePadding="12dp"
+                android:text="@string/settings_clear_cache"
+                android:textAllCaps="false"
+                android:textColor="@color/error"
+                android:textSize="15sp"
+                android:background="@drawable/bg_item_ripple"
+                android:stateListAnimator="@null" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/set_status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:visibility="gone"
-            android:paddingTop="8dp"
+            android:background="@drawable/bg_card_settings"
+            android:padding="12dp"
             android:textColor="@color/on_surface_variant"
             android:textSize="13sp" />
     </LinearLayout>

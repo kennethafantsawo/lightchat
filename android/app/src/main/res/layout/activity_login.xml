@@ -1,134 +1,289 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/transparent"
-    android:fillViewport="true">
+    android:background="@color/surface_dim">
 
-    <LinearLayout
-        android:id="@+id/login_card"
+    <!-- Ambient subtil Telegram — voile supérieur très léger -->
+    <View
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="@dimen/screen_padding"
-        android:gravity="center_horizontal"
-        android:layout_marginTop="24dp"
-        android:layout_marginBottom="24dp">
+        android:layout_height="320dp"
+        android:layout_gravity="top"
+        android:background="#0F2AABEE" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:layout_marginBottom="24dp"
-            android:text="@string/app_name"
-            android:textColor="@color/on_surface"
-            android:textSize="32sp"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/input_username"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Pseudo (minuscules, 3-20)"
-            android:padding="14dp"
-            android:background="@drawable/bg_input"
-            android:textColor="@color/on_surface"
-            android:textColorHint="@color/on_surface_variant"
-            android:inputType="text" />
-
-        <EditText
-            android:id="@+id/input_password"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="Mot de passe"
-            android:padding="14dp"
-            android:background="@drawable/bg_input"
-            android:textColor="@color/on_surface"
-            android:textColorHint="@color/on_surface_variant"
-            android:inputType="textPassword" />
+    <!-- Contenu scrollable centré -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:overScrollMode="never">
 
         <LinearLayout
-            android:id="@+id/group_register"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:layout_marginTop="12dp"
-            android:visibility="gone">
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="32dp"
+            android:paddingBottom="24dp">
 
-            <EditText
-                android:id="@+id/input_first_name"
+            <!-- Carte centrale premium 412dp max, radius 28dp, elevation 6dp -->
+            <LinearLayout
+                android:id="@+id/login_card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Prénom"
-                android:padding="14dp"
-                android:background="@drawable/bg_input"
-                android:textColor="@color/on_surface"
-                android:textColorHint="@color/on_surface_variant"
-                android:inputType="text" />
+                android:layout_gravity="center_horizontal"
+                android:maxWidth="412dp"
+                android:orientation="vertical"
+                android:padding="24dp"
+                android:background="@drawable/bg_card_login"
+                android:elevation="6dp"
+                android:outlineProvider="background">
 
-            <EditText
-                android:id="@+id/input_last_name"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="Nom"
-                android:padding="14dp"
-                android:background="@drawable/bg_input"
-                android:textColor="@color/on_surface"
-                android:textColorHint="@color/on_surface_variant"
-                android:inputType="text" />
+                <!-- HEADER Telegram-like -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical">
 
-            <EditText
-                android:id="@+id/input_age"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:hint="Âge (13-120)"
-                android:padding="14dp"
-                android:background="@drawable/bg_input"
-                android:textColor="@color/on_surface"
-                android:textColorHint="@color/on_surface_variant"
-                android:inputType="number" />
+                    <!-- Logo 72dp circle primary_container -->
+                    <FrameLayout
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:background="@drawable/bg_avatar"
+                        android:elevation="0dp">
 
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:text="LC"
+                            android:textColor="@color/on_primary_container"
+                            android:textSize="26sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.02"
+                            tools:ignore="HardcodedText" />
+
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="@string/app_name"
+                        android:textColor="@color/on_surface"
+                        android:textSize="28sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="-0.02"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/login_subtitle"
+                        android:textColor="@color/on_surface_variant"
+                        android:textSize="14sp"
+                        android:letterSpacing="0.01"
+                        android:gravity="center" />
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="20dp"
+                        android:layout_marginBottom="20dp"
+                        android:background="@color/outline_variant"
+                        android:alpha="0.9" />
+
+                </LinearLayout>
+
+                <!-- FORM: Username — pill 56dp -->
+                <EditText
+                    android:id="@+id/input_username"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_input"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:hint="@string/login_hint_username"
+                    android:textColor="@color/on_surface"
+                    android:textColorHint="@color/on_surface_variant"
+                    android:textSize="15sp"
+                    android:fontFamily="sans-serif"
+                    android:inputType="text"
+                    android:singleLine="true"
+                    android:imeOptions="actionNext" />
+
+                <!-- Password — pill 56dp -->
+                <EditText
+                    android:id="@+id/input_password"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_input"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:hint="@string/login_hint_password"
+                    android:textColor="@color/on_surface"
+                    android:textColorHint="@color/on_surface_variant"
+                    android:textSize="15sp"
+                    android:inputType="textPassword"
+                    android:singleLine="true"
+                    android:imeOptions="actionDone" />
+
+                <!-- Groupe inscription — conserve tous les ids -->
+                <LinearLayout
+                    android:id="@+id/group_register"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:layout_marginTop="12dp">
+
+                    <EditText
+                        android:id="@+id/input_first_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="@drawable/bg_input"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:hint="@string/login_hint_firstname"
+                        android:textColor="@color/on_surface"
+                        android:textColorHint="@color/on_surface_variant"
+                        android:textSize="15sp"
+                        android:inputType="textCapWords"
+                        android:singleLine="true"
+                        android:imeOptions="actionNext" />
+
+                    <EditText
+                        android:id="@+id/input_last_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_input"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:hint="@string/login_hint_lastname"
+                        android:textColor="@color/on_surface"
+                        android:textColorHint="@color/on_surface_variant"
+                        android:textSize="15sp"
+                        android:inputType="textCapWords"
+                        android:singleLine="true"
+                        android:imeOptions="actionNext" />
+
+                    <EditText
+                        android:id="@+id/input_age"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_input"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:hint="@string/login_hint_age"
+                        android:textColor="@color/on_surface"
+                        android:textColorHint="@color/on_surface_variant"
+                        android:textSize="15sp"
+                        android:inputType="number"
+                        android:singleLine="true"
+                        android:imeOptions="actionNext" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:layout_marginStart="4dp"
+                        android:text="@string/login_label_gender"
+                        android:textColor="@color/on_surface_variant"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.04"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <!-- Spinner pill wrapper -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="6dp"
+                        android:background="@drawable/bg_input"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="12dp">
+
+                        <Spinner
+                            android:id="@+id/input_gender"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:spinnerMode="dropdown"
+                            android:background="@android:color/transparent" />
+
+                    </FrameLayout>
+                </LinearLayout>
+
+                <!-- Bouton primaire Telegram #2AABEE pill 50dp radius 25dp -->
+                <Button
+                    android:id="@+id/btn_login"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/bg_btn_primary_ripple"
+                    android:text="@string/login_submit"
+                    android:textAllCaps="false"
+                    android:textColor="@color/on_primary"
+                    android:textSize="15sp"
+                    android:letterSpacing="0.02"
+                    android:fontFamily="sans-serif-medium"
+                    android:elevation="0dp"
+                    android:stateListAnimator="@null" />
+
+                <!-- Toggle mode -->
+                <TextView
+                    android:id="@+id/txt_toggle_mode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="16dp"
+                    android:padding="8dp"
+                    android:text="@string/switch_to_register"
+                    android:textColor="@color/primary"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.01" />
+
+                <!-- Status card error — initial gone, géré par LoginActivity -->
+                <TextView
+                    android:id="@+id/txt_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_status_error"
+                    android:padding="12dp"
+                    android:textColor="@color/error"
+                    android:textSize="13sp"
+                    android:lineSpacingExtra="2dp"
+                    android:visibility="gone"
+                    tools:text="Pseudo invalide : 3-20 caractères."
+                    tools:visibility="visible" />
+
+            </LinearLayout>
+
+            <!-- Footer branding léger -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="Sexe"
-                android:textColor="@color/on_surface" />
+                android:layout_marginTop="16dp"
+                android:text="@string/login_footer"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="12sp"
+                android:alpha="0.8"
+                android:gravity="center"
+                android:letterSpacing="0.03" />
 
-            <Spinner
-                android:id="@+id/input_gender"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:padding="14dp"
-                android:spinnerMode="dropdown" />
         </LinearLayout>
-
-        <Button
-            android:id="@+id/btn_login"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="Se connecter"
-            android:background="@drawable/bg_btn_primary_ripple"
-            android:textColor="@color/on_primary" />
-
-        <TextView
-            android:id="@+id/txt_toggle_mode"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/switch_to_register"
-            android:textColor="@color/secondary" />
-
-        <TextView
-            android:id="@+id/txt_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textColor="@color/error" />
-    </LinearLayout>
-</ScrollView>
+    </ScrollView>
+</FrameLayout>

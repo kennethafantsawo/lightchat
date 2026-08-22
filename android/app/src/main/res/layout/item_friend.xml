@@ -2,19 +2,25 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:minHeight="72dp"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="12dp"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
     android:background="@drawable/bg_item_ripple">
 
+    <!-- Avatar 48dp -->
     <TextView
         android:id="@+id/f_avatar"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:gravity="center"
         android:textColor="@color/on_primary"
         android:textSize="18sp"
         android:textStyle="bold"
+        android:fontFamily="sans-serif-medium"
         android:background="@drawable/bg_avatar" />
 
     <LinearLayout
@@ -22,8 +28,10 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:layout_marginStart="12dp"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:gravity="center_vertical">
 
+        <!-- Name 16sp medium -->
         <TextView
             android:id="@+id/f_name"
             android:layout_width="match_parent"
@@ -32,24 +40,35 @@
             android:ellipsize="end"
             android:textColor="@color/on_surface"
             android:textSize="16sp"
-            android:textStyle="bold" />
+            android:fontFamily="sans-serif-medium" />
 
+        <!-- Username 13sp -->
         <TextView
             android:id="@+id/f_username"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:ellipsize="end"
+            android:layout_marginTop="2dp"
             android:textColor="@color/on_surface_variant"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
     </LinearLayout>
 
+    <!-- Bouton 36dp radius 18dp Telegram primary -->
     <Button
         android:id="@+id/btn_talk"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="36dp"
+        android:minWidth="72dp"
+        android:minHeight="36dp"
+        android:gravity="center"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="@drawable/bg_btn_primary"
         android:text="@string/btn_talk"
+        android:textAllCaps="false"
+        android:textColor="@color/on_primary"
         android:textSize="13sp"
-        android:background="@drawable/bg_input"
-        android:textColor="@color/on_surface" />
+        android:fontFamily="sans-serif-medium"
+        android:stateListAnimator="@null" />
 </LinearLayout>

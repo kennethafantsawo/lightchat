@@ -2,19 +2,25 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:minHeight="72dp"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="12dp"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
     android:background="@drawable/bg_item_ripple">
 
+    <!-- Avatar 48dp -->
     <TextView
         android:id="@+id/p_avatar"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:gravity="center"
         android:textColor="@color/on_primary"
         android:textSize="18sp"
         android:textStyle="bold"
+        android:fontFamily="sans-serif-medium"
         android:background="@drawable/bg_avatar" />
 
     <LinearLayout
@@ -32,7 +38,7 @@
             android:ellipsize="end"
             android:textColor="@color/on_surface"
             android:textSize="16sp"
-            android:textStyle="bold" />
+            android:fontFamily="sans-serif-medium" />
 
         <TextView
             android:id="@+id/p_username"
@@ -40,26 +46,45 @@
             android:layout_height="wrap_content"
             android:maxLines="1"
             android:ellipsize="end"
+            android:layout_marginTop="2dp"
             android:textColor="@color/on_surface_variant"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
     </LinearLayout>
 
+    <!-- Bouton Accepter 36dp radius 18dp primary -->
     <Button
         android:id="@+id/btn_accept"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/btn_accept"
-        android:textSize="13sp"
+        android:layout_height="36dp"
+        android:minWidth="72dp"
+        android:minHeight="36dp"
+        android:gravity="center"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
         android:background="@drawable/bg_btn_primary"
-        android:textColor="@color/on_primary" />
+        android:text="@string/btn_accept"
+        android:textAllCaps="false"
+        android:textColor="@color/on_primary"
+        android:textSize="13sp"
+        android:fontFamily="sans-serif-medium"
+        android:stateListAnimator="@null" />
 
+    <!-- Bouton Refuser 36dp radius 18dp secondary -->
     <Button
         android:id="@+id/btn_decline"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="36dp"
+        android:minWidth="64dp"
+        android:minHeight="36dp"
         android:layout_marginStart="8dp"
-        android:text="@string/btn_decline"
-        android:textSize="13sp"
+        android:gravity="center"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
         android:background="@drawable/bg_input"
-        android:textColor="@color/on_surface" />
+        android:text="@string/btn_decline"
+        android:textAllCaps="false"
+        android:textColor="@color/on_surface"
+        android:textSize="13sp"
+        android:fontFamily="sans-serif-medium"
+        android:stateListAnimator="@null" />
 </LinearLayout>

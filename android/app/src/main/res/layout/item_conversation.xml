@@ -1,96 +1,163 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:padding="12dp"
+    android:orientation="vertical"
     android:background="@drawable/bg_item_ripple">
 
-    <FrameLayout
-        android:layout_width="46dp"
-        android:layout_height="46dp">
-
-        <com.lightchat.widget.EmojiTextView
-            android:id="@+id/avatar"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:textColor="@color/on_primary"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:background="@drawable/bg_avatar" />
-
-        <View
-            android:id="@+id/online_dot"
-            android:layout_width="13dp"
-            android:layout_height="13dp"
-            android:layout_gravity="bottom|end"
-            android:background="@drawable/bg_online_dot"
-            android:visibility="gone" />
-    </FrameLayout>
-
+    <!-- Row Telegram : hauteur 72dp padding 8dp vertical 16dp horiz ripple visible -->
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:layout_marginStart="12dp"
-        android:orientation="vertical">
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
 
-        <com.lightchat.widget.EmojiTextView
-            android:id="@+id/row_name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="@color/on_surface"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end" />
+        <!-- Avatar 54dp circle -->
+        <FrameLayout
+            android:layout_width="54dp"
+            android:layout_height="54dp">
 
-        <com.lightchat.widget.EmojiTextView
-            android:id="@+id/row_preview"
-            android:layout_width="match_parent"
+            <com.lightchat.widget.EmojiTextView
+                android:id="@+id/avatar"
+                android:layout_width="54dp"
+                android:layout_height="54dp"
+                android:gravity="center"
+                android:textColor="@color/on_primary"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:background="@drawable/bg_avatar"
+                tools:text="AB" />
+
+            <View
+                android:id="@+id/online_dot"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_gravity="bottom|end"
+                android:layout_marginEnd="-1dp"
+                android:layout_marginBottom="-1dp"
+                android:background="@drawable/bg_online_dot"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </FrameLayout>
+
+        <!-- Textes : name 17sp medium + preview 15sp variant -->
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textColor="@color/on_surface_variant"
-            android:textSize="14sp"
-            android:maxLines="1"
-            android:ellipsize="end" />
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:orientation="vertical"
+            android:gravity="center_vertical">
+
+            <com.lightchat.widget.EmojiTextView
+                android:id="@+id/row_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/on_surface"
+                android:textSize="17sp"
+                android:fontFamily="sans-serif-medium"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="Jean Dupont" />
+
+            <com.lightchat.widget.EmojiTextView
+                android:id="@+id/row_preview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="15sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="Salut ! On se voit demain ?" />
+        </LinearLayout>
+
+        <!-- Colonne droite : time 12sp outline top-right + badge pill + mute -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <com.lightchat.widget.EmojiTextView
+                    android:id="@+id/row_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="12sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    tools:text="12:34" />
+
+                <com.lightchat.widget.EmojiTextView
+                    android:id="@+id/row_mute"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/bell_off"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="13sp"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+            </LinearLayout>
+
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:minWidth="22dp">
+
+                <!-- Badge pill minWidth 22dp height 20dp radius 999dp -->
+                <com.lightchat.widget.EmojiTextView
+                    android:id="@+id/row_unread"
+                    android:layout_width="wrap_content"
+                    android:layout_height="20dp"
+                    android:minWidth="22dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:gravity="center"
+                    android:background="@drawable/bg_badge"
+                    android:textColor="@color/on_badge"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium"
+                    android:visibility="gone"
+                    tools:text="3"
+                    tools:visibility="visible" />
+
+                <!-- Chevron discret (Telegram sans chevron, gardé pour compat) -->
+                <com.lightchat.widget.EmojiTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="›"
+                    android:textColor="@color/outline"
+                    android:textSize="18sp"
+                    android:visibility="gone"
+                    tools:visibility="gone" />
+            </FrameLayout>
+        </LinearLayout>
     </LinearLayout>
 
-    <com.lightchat.widget.EmojiTextView
-        android:id="@+id/row_time"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@color/on_surface_variant"
-        android:textSize="12sp"
-        android:layout_marginStart="8dp" />
+    <!-- Divider 0.5dp outline_variant inset 72dp (avatar 54 + padding 16 + margin 12 ≈ 82dp) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:layout_marginStart="82dp"
+        android:background="@color/outline_variant" />
 
-    <com.lightchat.widget.EmojiTextView
-        android:id="@+id/row_mute"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:text="@string/bell_off"
-        android:textColor="@color/on_surface_variant"
-        android:textSize="14sp"
-        android:visibility="gone" />
-
-    <com.lightchat.widget.EmojiTextView
-        android:id="@+id/row_unread"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:gravity="center"
-        android:layout_marginStart="6dp"
-        android:textColor="@color/on_primary"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:visibility="gone" />
-
-    <com.lightchat.widget.EmojiTextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="2dp"
-        android:text="›"
-        android:textColor="@color/outline"
-        android:textSize="20sp" />
 </LinearLayout>

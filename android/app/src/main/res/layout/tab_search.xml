@@ -3,66 +3,145 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/transparent">
+    android:background="@color/surface">
 
+    <!-- Search bar Telegram — pill 42dp, surface_variant -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="8dp">
+        android:padding="12dp"
+        android:background="@color/surface">
 
-        <EditText
-            android:id="@+id/search_input"
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="42dp"
             android:layout_weight="1"
-            android:hint="@string/search_hint"
-            android:padding="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
             android:background="@drawable/bg_input"
-            android:textColor="@color/on_surface"
-            android:textColorHint="@color/on_surface_variant"
-            android:inputType="text" />
+            android:paddingStart="14dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⌕"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="15sp"
+                android:paddingEnd="8dp" />
+
+            <EditText
+                android:id="@+id/search_input"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="@string/search_hint"
+                android:textColor="@color/on_surface"
+                android:textColorHint="@color/on_surface_variant"
+                android:textSize="15sp"
+                android:inputType="text"
+                android:singleLine="true"
+                android:ellipsize="end" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/btn_search"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="@string/btn_search"
+            android:layout_height="36dp"
+            android:layout_marginStart="10dp"
             android:background="@drawable/bg_btn_primary"
-            android:textColor="@color/on_primary" />
+            android:gravity="center"
+            android:minWidth="88dp"
+            android:minHeight="36dp"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:text="@string/btn_search"
+            android:textAllCaps="false"
+            android:textColor="@color/on_primary"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:stateListAnimator="@null" />
     </LinearLayout>
+
+    <!-- Header sticky 36dp 12sp caps (optionnel search results label) -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="#F5F7F8"
+        android:text="RÉSULTATS"
+        android:textColor="#2AABEE"
+        android:textSize="12sp"
+        android:letterSpacing="0.08"
+        android:textAllCaps="true"
+        android:fontFamily="sans-serif-medium" />
 
     <TextView
         android:id="@+id/search_status"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="8dp"
+        android:background="#EFFDDE"
+        android:padding="10dp"
         android:visibility="gone"
-        android:textColor="@color/error"
+        android:textColor="#2D5A2E"
         android:textSize="13sp" />
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:background="@color/surface">
 
         <ListView
             android:id="@+id/result_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:divider="#00000000"
-            android:dividerHeight="2dp" />
+            android:clipToPadding="false"
+            android:divider="@color/divider"
+            android:dividerHeight="0.5dp"
+            android:paddingBottom="12dp" />
 
-        <TextView
-            android:id="@+id/result_empty"
+        <!-- Empty state illustré 64dp cercle + title 16sp + subtitle -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:gravity="center"
-            android:padding="24dp"
-            android:text="@string/search_prompt"
-            android:textColor="@color/on_surface_variant" />
+            android:orientation="vertical"
+            android:padding="32dp">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/bg_avatar"
+                android:contentDescription="@null"
+                android:alpha="0.85" />
+
+            <TextView
+                android:id="@+id/result_empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:text="@string/search_prompt"
+                android:textColor="@color/on_surface"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:layout_width="260dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="Saisissez un pseudo pour trouver vos amis"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="13sp"
+                android:lineSpacingExtra="2dp" />
+        </LinearLayout>
     </FrameLayout>
 </LinearLayout>

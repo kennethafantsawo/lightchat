@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LightChat</string>
+    <string name="login_subtitle">Rapide. Sécurisé. Léger.</string>
+    <string name="login_hint_username">Pseudo (minuscules, 3-20)</string>
+    <string name="login_hint_password">Mot de passe</string>
+    <string name="login_hint_firstname">Prénom</string>
+    <string name="login_hint_lastname">Nom</string>
+    <string name="login_hint_age">Âge (13-120)</string>
+    <string name="login_label_gender">Sexe</string>
+    <string name="login_footer">Chiffrement de bout en bout • Rapide • Léger</string>
 
     <string name="switch_to_register">Créer un compte</string>
     <string name="switch_to_login">Se connecter</string>
@@ -25,6 +33,9 @@
     <string name="theme_liquid">Verre</string>
     <string name="theme_nebula">Nébuleuse</string>
     <string name="theme_aurora">Aurore</string>
+    <string name="theme_telegram">Telegram</string>
+    <string name="theme_telegram_classic">Telegram Classic</string>
+    <string name="theme_telegram_dark">Telegram Nuit</string>
     <string name="theme_applied">Thème appliqué.</string>
 
     <string name="conv_empty">Aucune conversation pour l\'instant.</string>

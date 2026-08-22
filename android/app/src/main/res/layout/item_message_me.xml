@@ -1,53 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:gravity="end"
-    android:padding="8dp">
+    android:paddingStart="48dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp">
 
-    <com.lightchat.widget.EmojiTextView
-        android:id="@+id/reply_preview"
+    <!-- Reply preview pill (Telegram accent 3dp left border) -->
+    <LinearLayout
+        android:id="@+id/reply_preview_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end"
         android:visibility="gone"
+        android:orientation="horizontal"
         android:background="@drawable/bg_reply"
-        android:maxWidth="280dp"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:padding="8dp"
         android:layout_marginBottom="3dp"
-        android:textColor="@color/on_surface_variant"
-        android:textSize="13sp" />
+        android:maxWidth="@dimen/bubble_max_width">
 
+        <com.lightchat.widget.EmojiTextView
+            android:id="@+id/reply_preview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:background="@android:color/transparent"
+            android:maxWidth="280dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:padding="8dp"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="13sp"
+            tools:text="↳ Reply preview" />
+    </LinearLayout>
+
+    <!-- Bubble — outer wrapper for tail cut, Skin.bubble() overrides bg -->
     <LinearLayout
         android:id="@+id/msg_bubble"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:maxWidth="280dp"
-        android:background="@drawable/bg_btn_primary">
+        android:orientation="vertical"
+        android:gravity="end"
+        android:maxWidth="@dimen/bubble_max_width"
+        android:background="@drawable/bg_btn_primary"
+        android:elevation="1dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="4dp">
 
-        <com.lightchat.widget.EmojiTextView
-            android:id="@+id/bubble_text"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:maxWidth="240dp"
-            android:padding="12dp"
-            android:textColor="@color/on_primary"
-            android:textSize="15sp" />
+            android:orientation="horizontal"
+            android:gravity="bottom">
 
-        <com.lightchat.widget.EmojiTextView
-            android:id="@+id/msg_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingEnd="10dp"
-            android:textColor="@color/on_primary"
-            android:textSize="11sp" />
+            <com.lightchat.widget.EmojiTextView
+                android:id="@+id/bubble_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="260dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="7dp"
+                android:paddingBottom="7dp"
+                android:textColor="@color/on_primary"
+                android:textSize="15sp"
+                android:lineSpacingExtra="2dp"
+                tools:text="Salut, comment ça va ? Telegram bubble premium" />
+
+            <!-- Time + checks inside bubble bottom-right -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingEnd="6dp"
+                android:paddingBottom="2dp"
+                android:layout_marginStart="2dp">
+
+                <com.lightchat.widget.EmojiTextView
+                    android:id="@+id/msg_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#B3FFFFFF"
+                    android:textSize="11sp"
+                    android:visibility="gone"
+                    tools:text="14:32"
+                    tools:visibility="visible" />
+
+                <com.lightchat.widget.EmojiTextView
+                    android:id="@+id/msg_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textColor="#E6FFFFFF"
+                    android:textSize="11sp"
+                    android:includeFontPadding="false"
+                    tools:text="✓✓" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 
+    <!-- Reactions pill — Telegram rounded -->
     <com.lightchat.widget.EmojiTextView
         android:id="@+id/msg_reactions"
         android:layout_width="wrap_content"
@@ -55,14 +113,17 @@
         android:layout_gravity="end"
         android:visibility="gone"
         android:background="@drawable/bg_reply"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
         android:layout_marginTop="4dp"
-        android:textColor="@color/on_surface_variant"
-        android:textSize="12sp" />
+        android:textColor="@color/on_surface"
+        android:textSize="12sp"
+        tools:text="❤️ 2"
+        tools:visibility="visible" />
 
+    <!-- Meta fallback (outside bubble) -->
     <com.lightchat.widget.EmojiTextView
         android:id="@+id/msg_meta"
         android:layout_width="wrap_content"
@@ -70,6 +131,7 @@
         android:layout_gravity="end"
         android:visibility="gone"
         android:layout_marginTop="2dp"
-        android:textColor="@color/on_surface_variant"
-        android:textSize="11sp" />
+        android:textColor="#8A707991"
+        android:textSize="11sp"
+        tools:text="14:32 ✓✓" />
 </LinearLayout>

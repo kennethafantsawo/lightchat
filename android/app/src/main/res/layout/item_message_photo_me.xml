@@ -1,53 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:gravity="end"
-    android:padding="8dp">
+    android:paddingStart="48dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp">
 
-    <com.lightchat.widget.EmojiTextView
-        android:id="@+id/reply_preview"
+    <LinearLayout
+        android:id="@+id/reply_preview_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end"
         android:visibility="gone"
         android:background="@drawable/bg_reply"
-        android:maxWidth="280dp"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:padding="8dp"
         android:layout_marginBottom="3dp"
-        android:textColor="@color/on_surface_variant"
-        android:textSize="13sp" />
-
-    <FrameLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
-
-        <ImageView
-            android:id="@+id/photo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxWidth="240dp"
-            android:maxHeight="360dp"
-            android:minWidth="120dp"
-            android:minHeight="120dp"
-            android:adjustViewBounds="true"
-            android:scaleType="centerCrop"
-            android:background="@drawable/bg_btn_primary" />
+        android:maxWidth="@dimen/bubble_max_width">
 
         <com.lightchat.widget.EmojiTextView
-            android:id="@+id/photo_err"
+            android:id="@+id/reply_preview"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone"
-            android:padding="12dp"
-            android:gravity="center"
-            android:textColor="@color/on_primary"
-            android:textSize="14sp" />
-    </FrameLayout>
+            android:background="@android:color/transparent"
+            android:maxWidth="280dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:padding="8dp"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="13sp"
+            tools:text="↳ Reply" />
+    </LinearLayout>
+
+    <!-- Photo bubble — 18dp radius card -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="1dp"
+        app:cardBackgroundColor="@color/bubble_outgoing"
+        app:strokeWidth="0dp">
+
+        <FrameLayout
+            android:layout_width="240dp"
+            android:layout_height="wrap_content"
+            android:minHeight="120dp">
+
+            <ImageView
+                android:id="@+id/photo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxHeight="360dp"
+                android:minHeight="120dp"
+                android:adjustViewBounds="true"
+                android:scaleType="centerCrop"
+                android:background="@color/bubble_outgoing"
+                tools:src="@android:drawable/sym_def_app_icon" />
+
+            <!-- Video play overlay circle 56dp -->
+            <FrameLayout
+                android:id="@+id/video_overlay"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_avatar"
+                android:alpha="0.92"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="▶"
+                    android:textColor="@color/on_primary"
+                    android:textSize="22sp"
+                    android:layout_marginStart="2dp" />
+            </FrameLayout>
+
+            <com.lightchat.widget.EmojiTextView
+                android:id="@+id/photo_err"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                android:padding="12dp"
+                android:gravity="center"
+                android:textColor="@color/on_primary"
+                android:textSize="14sp"
+                tools:text="Média indisponible" />
+
+            <!-- Time + status scrim at bottom -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:orientation="horizontal"
+                android:gravity="end|center_vertical"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="6dp"
+                android:background="#66000000">
+
+                <com.lightchat.widget.EmojiTextView
+                    android:id="@+id/photo_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#E6FFFFFF"
+                    android:textSize="11sp"
+                    android:shadowColor="#66000000"
+                    android:shadowRadius="4"
+                    android:visibility="gone"
+                    tools:text="14:32"
+                    tools:visibility="visible" />
+
+                <com.lightchat.widget.EmojiTextView
+                    android:id="@+id/msg_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textColor="#E6FFFFFF"
+                    android:textSize="11sp"
+                    android:shadowColor="#66000000"
+                    android:shadowRadius="4"
+                    tools:text="✓✓" />
+            </LinearLayout>
+        </FrameLayout>
+    </androidx.cardview.widget.CardView>
 
     <com.lightchat.widget.EmojiTextView
         android:id="@+id/msg_reactions"
@@ -56,19 +140,22 @@
         android:layout_gravity="end"
         android:visibility="gone"
         android:background="@drawable/bg_reply"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:paddingTop="3dp"
-        android:paddingBottom="3dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
         android:layout_marginTop="4dp"
-        android:textColor="@color/on_surface_variant"
-        android:textSize="12sp" />
+        android:textColor="@color/on_surface"
+        android:textSize="12sp"
+        tools:text="❤️" />
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="2dp">
+        android:layout_gravity="end"
+        android:layout_marginTop="2dp"
+        android:gravity="center_vertical">
 
         <com.lightchat.widget.EmojiTextView
             android:id="@+id/msg_meta"
@@ -78,12 +165,12 @@
             android:layout_marginEnd="6dp"
             android:textColor="@color/on_surface_variant"
             android:textSize="11sp" />
-
-        <com.lightchat.widget.EmojiTextView
-            android:id="@+id/msg_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/on_surface_variant"
-            android:textSize="11sp" />
     </LinearLayout>
+
+    <!-- Keep msg_bubble id for Skin compatibility (invisible holder) -->
+    <View
+        android:id="@+id/msg_bubble"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
 </LinearLayout>

@@ -7,18 +7,44 @@
     <androidx.media3.ui.PlayerView
         android:id="@+id/video"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:background="#000000" />
 
-    <TextView
-        android:id="@+id/btn_video_back"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <!-- Top scrim gradient -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="96dp"
+        android:layout_gravity="top"
+        android:background="#80000000" />
+
+    <!-- Back button 40dp circle #80000000 -->
+    <FrameLayout
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_gravity="start|top"
-        android:padding="12dp"
-        android:background="#66000000"
-        android:text="‹"
-        android:textColor="@color/on_primary"
-        android:textSize="28sp" />
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="12dp"
+        android:background="#80000000"
+        android:elevation="2dp">
+
+        <TextView
+            android:id="@+id/btn_video_back"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:text="‹"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:includeFontPadding="false" />
+    </FrameLayout>
+
+    <!-- Bottom controls scrim -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_gravity="bottom"
+        android:background="#66000000" />
 
     <TextView
         android:id="@+id/txt_video_err"
@@ -28,6 +54,8 @@
         android:visibility="gone"
         android:padding="24dp"
         android:gravity="center"
-        android:textColor="@color/on_primary"
-        android:textSize="15sp" />
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:background="#80000000"
+        android:elevation="1dp" />
 </FrameLayout>

@@ -1,42 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/transparent">
+    android:background="@color/background">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <!-- Toolbar Telegram premium : 56dp surface primary #2AABEE elevation 4dp -->
         <LinearLayout
             android:id="@+id/header"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
+            android:background="@color/primary"
+            android:elevation="4dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:paddingStart="16dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="10dp"
-            android:paddingBottom="10dp">
+            android:paddingEnd="4dp">
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/app_name"
-                android:textColor="@color/on_surface"
-                android:textSize="@dimen/text_title"
-                android:textStyle="bold" />
+                android:text="LightChat"
+                android:textColor="@color/on_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="LightChat" />
 
+            <!-- Search icon Telegram -->
+            <TextView
+                android:id="@+id/btn_toolbar_search"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:gravity="center"
+                android:text="@string/disc_search"
+                android:textColor="@color/on_primary"
+                android:textSize="20sp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <!-- Logout icon - garde id txt_logout -->
             <TextView
                 android:id="@+id/txt_logout"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/logout"
-                android:textColor="@color/secondary"
-                android:textSize="14sp"
-                android:padding="8dp" />
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:gravity="center"
+                android:text="⎋"
+                android:textColor="@color/on_primary"
+                android:textSize="19sp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                tools:text="⎋" />
         </LinearLayout>
 
         <TextView
@@ -46,48 +71,100 @@
             android:padding="8dp"
             android:visibility="gone"
             android:textColor="@color/on_surface_variant"
-            android:textSize="13sp" />
+            android:textSize="13sp"
+            tools:text="En ligne"
+            tools:visibility="visible" />
 
         <FrameLayout
             android:id="@+id/content"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1">
+            android:layout_weight="1"
+            android:background="@color/background">
 
             <FrameLayout
                 android:id="@+id/chat_frame"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
-                <TextView
-                    android:id="@+id/txt_empty"
+                <!-- Empty view illustré Telegram -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
+                    android:orientation="vertical"
                     android:gravity="center"
-                    android:text="@string/conv_empty"
-                    android:textColor="@color/on_surface_variant"
-                    android:padding="24dp" />
+                    android:padding="32dp">
 
+                    <FrameLayout
+                        android:layout_width="96dp"
+                        android:layout_height="96dp"
+                        android:background="@drawable/bg_avatar"
+                        android:backgroundTint="@color/surface_variant">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="💬"
+                            android:textSize="42sp" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/txt_empty"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:gravity="center"
+                        android:text="@string/conv_empty"
+                        android:textColor="@color/on_surface"
+                        android:textSize="17sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:text="Appuyez sur le bouton crayon pour démarrer une nouvelle conversation"
+                        android:textColor="@color/on_surface_variant"
+                        android:textSize="14sp"
+                        android:lineSpacingExtra="2dp"
+                        android:maxWidth="260dp" />
+                </LinearLayout>
+
+                <!-- Liste Telegram : divider 0.5dp outline_variant inset 72dp paddingBottom 88dp -->
                 <ListView
                     android:id="@+id/list_conversations"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:divider="#00000000"
-                    android:dividerHeight="2dp"
+                    android:background="@color/surface"
+                    android:divider="@color/outline_variant"
+                    android:dividerHeight="0.5dp"
                     android:clipToPadding="false"
-                    android:paddingBottom="88dp" />
+                    android:paddingBottom="88dp"
+                    android:scrollbars="vertical"
+                    android:scrollbarStyle="outsideOverlay" />
             </FrameLayout>
         </FrameLayout>
 
+        <!-- Divider top nav 0.5dp outline_variant -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:background="@color/outline_variant" />
+
+        <!-- Bottom nav Telegram : 56dp surface elevation 8dp, 4 items icons+labels -->
         <LinearLayout
             android:id="@+id/bottom_nav"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="12dp"
-            android:orientation="horizontal">
+            android:layout_height="56dp"
+            android:background="@color/surface"
+            android:elevation="8dp"
+            android:orientation="horizontal"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
 
             <TextView
                 android:id="@+id/tab_chats"
@@ -98,7 +175,12 @@
                 android:text="@string/chat_label"
                 android:textColor="@color/primary"
                 android:textSize="12sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:drawableTop="@drawable/ic_notif"
+                android:drawableTint="@color/primary"
+                android:paddingTop="2dp" />
 
             <TextView
                 android:id="@+id/tab_friends"
@@ -108,7 +190,12 @@
                 android:gravity="center"
                 android:text="@string/friends_label"
                 android:textColor="@color/on_surface_variant"
-                android:textSize="12sp" />
+                android:textSize="12sp"
+                android:fontFamily="sans-serif"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:drawableTop="@drawable/ic_add"
+                android:drawableTint="@color/on_surface_variant"
+                android:paddingTop="2dp" />
 
             <TextView
                 android:id="@+id/tab_search"
@@ -118,7 +205,12 @@
                 android:gravity="center"
                 android:text="@string/search_label"
                 android:textColor="@color/on_surface_variant"
-                android:textSize="12sp" />
+                android:textSize="12sp"
+                android:fontFamily="sans-serif"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:drawableTop="@drawable/ic_back"
+                android:drawableTint="@color/on_surface_variant"
+                android:paddingTop="2dp" />
 
             <TextView
                 android:id="@+id/tab_settings"
@@ -128,19 +220,29 @@
                 android:gravity="center"
                 android:text="@string/settings_label"
                 android:textColor="@color/on_surface_variant"
-                android:textSize="12sp" />
+                android:textSize="12sp"
+                android:fontFamily="sans-serif"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:drawableTop="@drawable/ic_emoji"
+                android:drawableTint="@color/on_surface_variant"
+                android:paddingTop="2dp" />
         </LinearLayout>
     </LinearLayout>
 
+    <!-- FAB Telegram : 56dp circle primary #2AABEE elevation 6dp -->
     <TextView
         android:id="@+id/btn_new_chat"
-        android:layout_width="58dp"
-        android:layout_height="58dp"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="84dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="72dp"
+        android:background="@drawable/bg_fab"
+        android:elevation="6dp"
         android:gravity="center"
         android:text="@string/btn_plus"
         android:textColor="@color/on_primary"
-        android:textSize="30sp" />
+        android:textSize="28sp"
+        android:fontFamily="sans-serif-medium" />
+
 </FrameLayout>

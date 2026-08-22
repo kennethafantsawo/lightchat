@@ -3,71 +3,156 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/transparent">
+    android:background="@color/surface">
 
+    <!-- HEADER PENDING — 36dp, 12sp caps, letterSpacing 0.08, sticky Telegram style -->
     <TextView
         android:id="@+id/hdr_pending"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="12dp"
+        android:layout_height="36dp"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="#F5F7F8"
         android:text="@string/header_pending"
-        android:textColor="@color/on_surface_variant"
-        android:textSize="13sp"
-        android:textStyle="bold" />
+        android:textColor="#2AABEE"
+        android:textSize="12sp"
+        android:letterSpacing="0.08"
+        android:textAllCaps="true"
+        android:fontFamily="sans-serif-medium"
+        android:maxLines="1"
+        android:ellipsize="end" />
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:background="@color/surface">
 
         <ListView
             android:id="@+id/pending_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:divider="#00000000"
-            android:dividerHeight="2dp" />
+            android:clipToPadding="false"
+            android:divider="@color/divider"
+            android:dividerHeight="0.5dp"
+            android:paddingBottom="8dp" />
 
-        <TextView
-            android:id="@+id/pending_empty"
+        <!-- Empty state illustré — ImageView 64dp circle + title 16sp + subtitle -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:gravity="center"
-            android:padding="24dp"
-            android:text="@string/pending_empty"
-            android:textColor="@color/on_surface_variant" />
+            android:orientation="vertical"
+            android:padding="32dp">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/bg_avatar"
+                android:contentDescription="@null"
+                android:alpha="0.9" />
+
+            <!-- Garde l'id existant pending_empty (TextView titre 16sp) -->
+            <TextView
+                android:id="@+id/pending_empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:text="@string/pending_empty"
+                android:textColor="@color/on_surface"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="Les invitations que vous recevez apparaîtront ici"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="13sp"
+                android:lineSpacingExtra="2dp" />
+        </LinearLayout>
     </FrameLayout>
 
+    <!-- Divider inset 72dp visuel entre sections -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:layout_marginStart="72dp"
+        android:background="@color/divider" />
+
+    <!-- HEADER FRIENDS — 36dp caps -->
     <TextView
         android:id="@+id/hdr_friends"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="12dp"
+        android:layout_height="36dp"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="#F5F7F8"
         android:text="@string/header_friends"
-        android:textColor="@color/on_surface_variant"
-        android:textSize="13sp"
-        android:textStyle="bold" />
+        android:textColor="#2AABEE"
+        android:textSize="12sp"
+        android:letterSpacing="0.08"
+        android:textAllCaps="true"
+        android:fontFamily="sans-serif-medium"
+        android:maxLines="1"
+        android:ellipsize="end" />
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:background="@color/surface">
 
         <ListView
             android:id="@+id/friends_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:divider="#00000000"
-            android:dividerHeight="2dp" />
+            android:clipToPadding="false"
+            android:divider="@color/divider"
+            android:dividerHeight="0.5dp"
+            android:paddingBottom="12dp" />
 
-        <TextView
-            android:id="@+id/friends_empty"
+        <!-- Empty state illustré amis -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:gravity="center"
-            android:padding="24dp"
-            android:text="@string/friends_empty"
-            android:textColor="@color/on_surface_variant" />
+            android:orientation="vertical"
+            android:padding="32dp">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/bg_avatar"
+                android:contentDescription="@null"
+                android:alpha="0.9" />
+
+            <TextView
+                android:id="@+id/friends_empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:text="@string/friends_empty"
+                android:textColor="@color/on_surface"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="Ajoutez des amis depuis la recherche"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="13sp" />
+        </LinearLayout>
     </FrameLayout>
 </LinearLayout>

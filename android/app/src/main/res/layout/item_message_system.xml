@@ -4,12 +4,25 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center"
-    android:padding="8dp">
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp">
 
+    <!-- Pill centré date separator radius 12dp background #AAB8C2 -->
     <TextView
         android:id="@+id/msg_bubble"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/on_surface_variant"
-        android:textSize="12sp" />
+        android:background="@drawable/bg_system_pill"
+        android:gravity="center"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.02"
+        android:elevation="0dp" />
 </LinearLayout>
