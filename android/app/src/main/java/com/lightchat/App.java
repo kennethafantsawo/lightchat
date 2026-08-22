@@ -4,6 +4,9 @@ import android.app.Activity;
 import android.app.Application;
 import android.os.Bundle;
 
+import androidx.emoji2.bundled.BundledEmojiCompatConfig;
+import androidx.emoji2.text.EmojiCompat;
+
 import com.lightchat.util.Skin;
 
 public final class App extends Application {
@@ -17,6 +20,7 @@ public final class App extends Application {
     public void onCreate() {
         super.onCreate();
         Skin.load(this);
+        EmojiCompat.init(new BundledEmojiCompatConfig(this));
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override public void onActivityStarted(Activity a) { active++; }
             @Override public void onActivityStopped(Activity a) { if (active > 0) active--; }

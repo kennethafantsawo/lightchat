@@ -45,4 +45,23 @@ android {
 
 dependencies {
     testImplementation "junit:junit:4.13.2"
+
+    // Lecture vidéo/audio (AndroidX Media3 / ExoPlayer)
+    implementation "androidx.media3:media3-exoplayer:1.4.1"
+    implementation "androidx.media3:media3-exoplayer-dash:1.4.1"
+    implementation "androidx.media3:media3-ui:1.4.1"
+
+    // Chargement d'images + GIF animés (Glide)
+    implementation "com.github.bumptech.glide:glide:4.16.0"
+    annotationProcessor "com.github.bumptech.glide:glide:4.16.0"
+
+    // Zoom photo (PhotoView)
+    implementation "com.github.chrisbanes:PhotoView:2.3.0"
+
+    // Material Components
+    implementation "com.google.android.material:material:1.12.0"
+
+    // Emoji uniformes (EmojiCompat)
+    implementation "androidx.emoji2:emoji2:1.5.0"
+    implementation "androidx.emoji2:emoji2-bundled:1.5.0"
 }
