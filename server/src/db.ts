@@ -48,6 +48,10 @@ export async function markMessagesRead(env: Env, convId: string, upTo: number, u
   await env.DB.prepare(
     `UPDATE messages SET status = 'read' WHERE conv_id = ? AND created_at <= ? AND status IN ('sent','delivered') AND sender_id != ?`
   ).bind(convId, upTo, userId).run();
+  await env.DB.prepare(
+    `INSERT INTO last_read (user_id, conv_id, up_to) VALUES (?, ?, ?)
+     ON CONFLICT(user_id, conv_id) DO UPDATE SET up_to = MAX(up_to, excluded.up_to)`
+  ).bind(userId, convId, upTo).run();
 }
 
 export async function convMemberIds(env: Env, convId: string): Promise<string[]> {

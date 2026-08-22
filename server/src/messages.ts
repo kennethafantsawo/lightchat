@@ -93,7 +93,12 @@ export async function myConversations(env: Env, userId: string) {
             (SELECT m.created_at FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_at,
             (SELECT m.type FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_type,
             (SELECT m.id FROM messages m WHERE m.conv_id = c.id AND m.pinned = 1 ORDER BY m.created_at DESC LIMIT 1) as pinned_id,
-            (SELECT m.body FROM messages m WHERE m.conv_id = c.id AND m.pinned = 1 ORDER BY m.created_at DESC LIMIT 1) as pinned_body
+            (SELECT m.body FROM messages m WHERE m.conv_id = c.id AND m.pinned = 1 ORDER BY m.created_at DESC LIMIT 1) as pinned_body,
+            (SELECT COUNT(*) FROM messages m2
+               WHERE m2.conv_id = c.id
+                 AND m2.created_at > COALESCE((SELECT up_to FROM last_read lr WHERE lr.conv_id = c.id AND lr.user_id = cm.user_id), 0)
+                 AND m2.sender_id != cm.user_id
+                 AND m2.deleted = 0) as unread
      FROM conversation_members cm JOIN conversations c ON c.id = cm.conv_id
      WHERE cm.user_id = ?
      ORDER BY COALESCE((SELECT m.created_at FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC, m.id DESC LIMIT 1), c.created_at) DESC`
