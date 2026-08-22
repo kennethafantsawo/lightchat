@@ -38,3 +38,7 @@ Thumbs.db
 desktop.ini
 .idea/
 .vscode/
+
+# ===== Signing release (local, secret) =====
+keystore.properties
+android/keystore.properties
