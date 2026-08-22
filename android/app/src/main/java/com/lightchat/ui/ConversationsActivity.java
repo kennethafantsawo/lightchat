@@ -614,9 +614,38 @@ public class ConversationsActivity extends Activity {
             adapter.notifyDataSetChanged();
             cacheTitles();
             if (searchAdapter != null) searchAdapter.notifyDataSetChanged();
+            refreshPresence();
         } else {
             status.setText(R.string.conv_error);
         }
+    }
+
+    private void refreshPresence() {
+        Set<String> ids = new HashSet<String>(friendIds);
+        for (Conversation c : items) {
+            String o = otherId(c.convId);
+            if (o != null) ids.add(o);
+        }
+        if (ids.isEmpty()) return;
+        StringBuilder sb = new StringBuilder();
+        for (String id : ids) {
+            if (sb.length() > 0) sb.append(",");
+            sb.append(id);
+        }
+        final String csv = sb.toString();
+        final String token = session.token();
+        Async.exec(this, new Async.Worker<List<ApiClient.PresenceRow>>() {
+            @Override public List<ApiClient.PresenceRow> run() {
+                return ApiClient.presence(token, csv);
+            }
+        }, new Async.UI<List<ApiClient.PresenceRow>>() {
+            @Override public void on(List<ApiClient.PresenceRow> rows, Exception err) {
+                if (rows == null) return;
+                for (ApiClient.PresenceRow r : rows) Presence.set(r.userId, r.online);
+                adapter.notifyDataSetChanged();
+                if (searchAdapter != null) searchAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
     private static String join(String a, String b) {

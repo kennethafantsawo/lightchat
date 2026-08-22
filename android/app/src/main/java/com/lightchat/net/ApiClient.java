@@ -9,6 +9,8 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import com.lightchat.util.Json;
@@ -164,6 +166,40 @@ public final class ApiClient {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public static final class PresenceRow {
+        public final String userId;
+        public final boolean online;
+        public final long lastSeen;
+        PresenceRow(String userId, boolean online, long lastSeen) {
+            this.userId = userId;
+            this.online = online;
+            this.lastSeen = lastSeen;
+        }
+    }
+
+    public static List<PresenceRow> presence(String token, String idsCsv) {
+        List<PresenceRow> out = new ArrayList<PresenceRow>();
+        if (idsCsv == null || idsCsv.isEmpty()) return out;
+        try {
+            ApiResponse r = call("GET", "/api/users/presence?ids=" + idsCsv, null, token);
+            if (r.status != 200) return out;
+            Map<String, Object> o = Json.parseObject(r.body);
+            List<Object> arr = (List<Object>) o.get("presence");
+            if (arr != null) {
+                for (Object x : arr) {
+                    @SuppressWarnings("unchecked") Map<String, Object> m = (Map<String, Object>) x;
+                    String uid = String.valueOf(m.get("user_id"));
+                    boolean on = Boolean.TRUE.equals(m.get("online"));
+                    long ls = (m.get("last_seen") instanceof Number)
+                            ? ((Number) m.get("last_seen")).longValue() : 0L;
+                    out.add(new PresenceRow(uid, on, ls));
+                }
+            }
+        } catch (Exception e) {
+        }
+        return out;
     }
 
     private static String esc(String s) {

@@ -363,6 +363,37 @@ export default {
       return json({ last_seen: row ? Number((row as any).last_seen) : 0 });
     }
 
+    if (path === "/api/users/presence" && req.method === "GET") {
+      const raw = url.searchParams.get("ids") || "";
+      const ids = raw.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 200);
+      const onlineSet = new Set<string>();
+      if (ids.length) {
+        try {
+          const gid = env.CHAT_ROOM.idFromName("global");
+          const stub = env.CHAT_ROOM.get(gid);
+          const resp = await stub.fetch("https://lightchat/-/online", {
+            method: "POST",
+            body: JSON.stringify({ userIds: ids }),
+          });
+          const j = (await resp.json()) as any;
+          (j?.online ?? []).forEach((u: string) => onlineSet.add(u));
+        } catch {}
+      }
+      const seen: Record<string, number> = {};
+      if (ids.length) {
+        const rows = await env.DB.prepare(
+          `SELECT id, last_seen FROM users WHERE id IN (${ids.map(() => "?").join(",")})`
+        ).bind(...ids).all();
+        (rows.results as any[]).forEach((r) => { seen[r.id] = Number(r.last_seen); });
+      }
+      const presence = ids.map((id) => ({
+        user_id: id,
+        online: onlineSet.has(id),
+        last_seen: seen[id] ?? 0,
+      }));
+      return json({ presence });
+    }
+
     if (path === "/api/avatar" && req.method === "POST") {
       const ct = req.headers.get("content-type") || "";
       if (!ct.startsWith("image/")) return json({ error: "Format d'image attendu." }, 400);

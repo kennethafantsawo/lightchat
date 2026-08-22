@@ -32,6 +32,15 @@ export class ChatRoom {
       }
       return new Response("ok");
     }
+    if (url.pathname === "/online" || url.pathname === "/-/online") {
+      let ids: string[] = [];
+      try { ids = (await req.json())?.userIds ?? []; } catch {}
+      const online: string[] = [];
+      for (const id of ids) if (this.conns.has(id)) online.push(id);
+      return new Response(JSON.stringify({ online }), {
+        headers: { "content-type": "application/json" },
+      });
+    }
     return new Response("not found", { status: 404 });
   }
 
