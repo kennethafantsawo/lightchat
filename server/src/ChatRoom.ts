@@ -82,11 +82,17 @@ export class ChatRoom {
            FROM friendships WHERE (user_id = ? OR friend_id = ?) AND status = 'accepted'`
       ).bind(userId, userId, userId).all();
       const ids: string[] = (rows.results as any[]).map((r) => r.fid);
+      let sendOnline = online;
+      try {
+        const pr = await this.env.DB.prepare(`SELECT privacy_settings FROM users WHERE id = ?`).bind(userId).first();
+        const settings: any = JSON.parse((pr as any)?.privacy_settings || "{}");
+        if (settings?.hide_online) sendOnline = false;
+      } catch {}
       const globalId = this.env.CHAT_ROOM.idFromName("global");
       const stub = this.env.CHAT_ROOM.get(globalId);
       await stub.fetch("https://lightchat/-/push", {
         method: "POST",
-        body: JSON.stringify({ userIds: ids, payload: { type: "presence", user_id: userId, online } }),
+        body: JSON.stringify({ userIds: ids, payload: { type: "presence", user_id: userId, online: sendOnline } }),
       }).catch(() => {});
     } catch {}
   }

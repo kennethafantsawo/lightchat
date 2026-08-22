@@ -94,6 +94,22 @@ export default {
       await env.DB.prepare(`UPDATE users SET last_seen = ? WHERE id = ?`).bind(now, user.id).run();
     }
 
+    if (path === "/api/privacy" && req.method === "GET") {
+      const row = await env.DB.prepare(`SELECT privacy_settings FROM users WHERE id = ?`).bind(user.id).first();
+      let settings: any = {};
+      try { settings = JSON.parse((row as any)?.privacy_settings || "{}"); } catch {}
+      return json({ settings });
+    }
+
+    if (path === "/api/privacy" && req.method === "PUT") {
+      const b = await readJson(req);
+      const allowed = ["hide_online", "hide_last_seen", "read_receipts", "ephemeral_default_ttl"];
+      const clean: any = {};
+      for (const k of allowed) if (k in (b || {})) clean[k] = (b as any)[k];
+      await env.DB.prepare(`UPDATE users SET privacy_settings = ? WHERE id = ?`).bind(JSON.stringify(clean), user.id).run();
+      return json({ ok: true, settings: clean });
+    }
+
     if (path === "/api/users/search" && req.method === "GET") {
       const q = url.searchParams.get("q") || "";
       return json({ results: await searchUser(env, user.id, q) });
@@ -160,9 +176,14 @@ export default {
       if (!can) return json({ error: "Accès refusé." }, 403);
       const upTo = Date.now();
       await markMessagesRead(env, convId, upTo, user.id);
+      let readReceipts = true;
+      try {
+        const pr = await env.DB.prepare(`SELECT privacy_settings FROM users WHERE id = ?`).bind(user.id).first();
+        readReceipts = JSON.parse((pr as any)?.privacy_settings || "{}")?.read_receipts !== false;
+      } catch {}
       const ids = await convMemberIds(env, convId);
       for (const uid of ids) {
-        if (uid !== user.id) {
+        if (uid !== user.id && readReceipts) {
           await pushToUser(env, uid, { type: "read", conv_id: convId, user_id: user.id, up_to: upTo });
         }
       }
@@ -368,8 +389,10 @@ export default {
 
     if (path === "/api/users/lastseen" && req.method === "GET") {
       const uid = url.searchParams.get("user_id") || "";
-      const row = await env.DB.prepare(`SELECT last_seen FROM users WHERE id = ?`).bind(uid).first();
-      return json({ last_seen: row ? Number((row as any).last_seen) : 0 });
+      const row = await env.DB.prepare(`SELECT last_seen, privacy_settings FROM users WHERE id = ?`).bind(uid).first();
+      let hideLastSeen = false;
+      try { hideLastSeen = Boolean(JSON.parse((row as any)?.privacy_settings || "{}")?.hide_last_seen); } catch {}
+      return json({ last_seen: hideLastSeen ? 0 : (row ? Number((row as any).last_seen) : 0) });
     }
 
     if (path === "/api/users/presence" && req.method === "GET") {
@@ -389,17 +412,24 @@ export default {
         } catch {}
       }
       const seen: Record<string, number> = {};
+      const privacy: Record<string, any> = {};
       if (ids.length) {
         const rows = await env.DB.prepare(
-          `SELECT id, last_seen FROM users WHERE id IN (${ids.map(() => "?").join(",")})`
+          `SELECT id, last_seen, privacy_settings FROM users WHERE id IN (${ids.map(() => "?").join(",")})`
         ).bind(...ids).all();
-        (rows.results as any[]).forEach((r) => { seen[r.id] = Number(r.last_seen); });
+        (rows.results as any[]).forEach((r) => {
+          seen[r.id] = Number(r.last_seen);
+          try { privacy[r.id] = JSON.parse(r.privacy_settings || "{}"); } catch { privacy[r.id] = {}; }
+        });
       }
-      const presence = ids.map((id) => ({
-        user_id: id,
-        online: onlineSet.has(id),
-        last_seen: seen[id] ?? 0,
-      }));
+      const presence = ids.map((id) => {
+        const p = privacy[id] || {};
+        return {
+          user_id: id,
+          online: p.hide_online ? false : onlineSet.has(id),
+          last_seen: p.hide_last_seen ? 0 : (seen[id] ?? 0),
+        };
+      });
       return json({ presence });
     }
 
