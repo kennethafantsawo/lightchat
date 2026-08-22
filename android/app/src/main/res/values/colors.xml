@@ -25,4 +25,5 @@
     <color name="surface_tint">#4d44e3</color>
     <color name="ic_launcher_bg">#3525cd</color>
     <color name="ic_launcher_fg">#ffffff</color>
+    <color name="online_green">#2bb85a</color>
 </resources>

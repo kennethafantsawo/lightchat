@@ -9,6 +9,9 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
+import com.lightchat.util.Json;
 
 public final class ApiClient {
     private static final int TIMEOUT_MS = 15_000;
@@ -123,6 +126,40 @@ public final class ApiClient {
             String json = "{\"conv_id\":\"" + esc(convId) + "\",\"typing\":" + typing + "}";
             call("POST", "/api/typing", json, token);
         } catch (Exception ignored) {}
+    }
+
+    public static Long lastSeen(String token, String userId) {
+        try {
+            ApiResponse r = call("GET", "/api/users/lastseen?user_id=" + esc(userId), null, token);
+            if (r.status != 200 || r.body == null) return 0L;
+            Map<String, Object> o = Json.parseObject(r.body);
+            Object t = o.get("last_seen");
+            if (t instanceof Number) return ((Number) t).longValue();
+            if (o.get("error") != null) return 0L;
+            return 0L;
+        } catch (Exception e) {
+            return 0L;
+        }
+    }
+
+    public static boolean setEphemeral(String token, String convId, int ttl) {
+        try {
+            String json = "{\"conv_id\":\"" + esc(convId) + "\",\"ttl\":" + ttl + "}";
+            ApiResponse r = call("POST", "/api/conversations/ephemeral", json, token);
+            return r.status == 200;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static boolean deleteMessage(String token, String messageId) {
+        try {
+            String json = "{\"message_id\":\"" + esc(messageId) + "\"}";
+            ApiResponse r = call("POST", "/api/messages/delete", json, token);
+            return r.status == 200;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static String esc(String s) {

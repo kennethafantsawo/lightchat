@@ -36,6 +36,8 @@ import com.lightchat.util.Async;
 import com.lightchat.util.Fmt;
 import com.lightchat.util.Json;
 import com.lightchat.util.MediaStore;
+import com.lightchat.util.AvatarLoader;
+import com.lightchat.util.Presence;
 import com.lightchat.util.Skin;
 
 import java.io.File;
@@ -102,6 +104,22 @@ public class ConversationsActivity extends Activity {
             Map<String, Object> m = Json.parseObject(json);
             String type = (String) m.get("type");
             String convId = (String) m.get("conv_id");
+            if ("presence".equals(type)) {
+                String uid = (String) m.get("user_id");
+                Boolean on = Boolean.valueOf(String.valueOf(m.get("online")));
+                if (uid != null) {
+                    Presence.set(uid, on);
+                    runOnUiThread(new Runnable() {
+                        @Override public void run() {
+                            adapter.notifyDataSetChanged();
+                            if (friendAdapter != null) friendAdapter.notifyDataSetChanged();
+                            if (searchAdapter != null) searchAdapter.notifyDataSetChanged();
+                            if (pendingAdapter != null) pendingAdapter.notifyDataSetChanged();
+                        }
+                    });
+                }
+                return;
+            }
             if ("typing".equals(type) && convId != null) {
                 String who = (String) m.get("user_id");
                 if (who != null && !who.equals(session.userId())) {
@@ -168,6 +186,7 @@ public class ConversationsActivity extends Activity {
                 Intent i = new Intent(ConversationsActivity.this, DiscussionActivity.class);
                 i.putExtra("conv_id", c.convId);
                 i.putExtra("title", titleFor(c));
+                i.putExtra("ephemeral", c.ephemeralTtl);
                 startActivity(i);
                 overridePendingTransition(R.anim.act_fwd_in, R.anim.act_fwd_out);
             }
@@ -678,9 +697,11 @@ public class ConversationsActivity extends Activity {
             } else {
                 unread.setVisibility(View.GONE);
             }
-            avatar.setText(title.isEmpty() ? "?" : title.substring(0, 1).toUpperCase());
-            avatar.setTextColor(Skin.palette().onPrimary);
-            avatar.setBackground(Skin.circle(avatarColorFor(c)));
+            String other = ("dm".equals(c.kind)) ? otherId(c.convId) : null;
+            AvatarLoader.apply(avatar, other, session.token(),
+                    title.isEmpty() ? "?" : title.substring(0, 1).toUpperCase(), avatarColorFor(c));
+            View dot = convertView.findViewById(R.id.online_dot);
+            if (dot != null) dot.setVisibility((other != null && Presence.isOnline(other)) ? View.VISIBLE : View.GONE);
             return convertView;
         }
     }
@@ -987,9 +1008,9 @@ public class ConversationsActivity extends Activity {
     private void styleAvatar(TextView tv, Map<String, Object> m) {
         int fallback = Skin.palette().primaryContainer;
         String title = fullName(m);
-        tv.setText(title.substring(0, 1).toUpperCase());
-        tv.setTextColor(Skin.palette().onPrimary);
-        tv.setBackground(Skin.circle(colorFor(m, fallback)));
+        String id = (String) m.get("id");
+        AvatarLoader.apply(tv, id, session.token(),
+                title.substring(0, 1).toUpperCase(), colorFor(m, fallback));
     }
 
     private static int colorFor(Map<String, Object> m, int fallback) {

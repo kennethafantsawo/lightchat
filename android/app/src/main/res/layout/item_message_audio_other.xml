@@ -23,13 +23,28 @@
 
     <TextView
         android:id="@+id/btn_audio"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:gravity="center"
         android:background="@drawable/bg_input"
         android:textColor="@color/on_surface"
-        android:padding="12dp"
-        android:text="▶ 0:00"
-        android:textSize="15sp" />
+        android:text="▶"
+        android:textSize="16sp" />
+
+    <com.lightchat.ui.WaveView
+        android:id="@+id/wave"
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:layout_weight="1"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp" />
+
+    <TextView
+        android:id="@+id/audio_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/on_surface"
+        android:textSize="12sp" />
 
     <TextView
         android:id="@+id/msg_reactions"

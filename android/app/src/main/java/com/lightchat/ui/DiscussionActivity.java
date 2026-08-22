@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.ClipboardManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
@@ -41,8 +42,10 @@ import com.lightchat.models.Message;
 import com.lightchat.net.ApiClient;
 import com.lightchat.net.Realtime;
 import com.lightchat.util.Async;
+import com.lightchat.util.AvatarLoader;
 import com.lightchat.util.Json;
 import com.lightchat.util.MediaStore;
+import com.lightchat.util.Presence;
 import com.lightchat.util.Skin;
 
 import java.io.ByteArrayOutputStream;
@@ -59,6 +62,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+
+import org.json.JSONObject;
 
 public class DiscussionActivity extends Activity {
     private static final long POLL_FAST_MS = 2000L;
@@ -104,9 +109,21 @@ public class DiscussionActivity extends Activity {
     private boolean typingShown = false;
     private String draftText = null;
 
+    private String peerId = null;
+    private int ephemeralTtl = 0;
+    private boolean selecting = false;
+    private final Set<String> selectedIds = new HashSet<String>();
+    private View avatarDisc;
+    private View discOnlineDot;
+    private TextView presenceText;
+    private View ephemeralBanner;
+    private View selectionBar;
+    private TextView selectionCount;
+
     private MediaPlayer player;
-    private TextView playerBtn;
-    private String playerBase;
+    private WaveView activeWave;
+    private String playingId;
+    private float lastProgress = 0f;
     private MediaRecorder recorder;
     private File voiceFile;
     private long recStartMs;
@@ -225,6 +242,136 @@ public class DiscussionActivity extends Activity {
         }
         buildStickerRow();
         refreshMuteButton();
+        setupSocial();
+    }
+
+    private void setupSocial() {
+        avatarDisc = findViewById(R.id.avatar_disc);
+        discOnlineDot = findViewById(R.id.disc_online_dot);
+        presenceText = findViewById(R.id.txt_presence);
+        ephemeralBanner = findViewById(R.id.ephemeral_banner);
+        selectionBar = findViewById(R.id.selection_bar);
+        selectionCount = findViewById(R.id.selection_count);
+
+        if (convId != null && convId.startsWith("dm:")) {
+            peerId = otherId(convId);
+        }
+        String passedTitle = getIntent().getStringExtra("title");
+        String peerName = passedTitle != null ? passedTitle : (peerId != null ? peerId : convId);
+
+        if (peerId != null && avatarDisc != null) {
+            AvatarLoader.apply((TextView) avatarDisc, peerId, session.token(),
+                    initialOf(peerName), Skin.palette().primary);
+            refreshPresenceUi();
+        }
+
+        findViewById(R.id.btn_ephemeral).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { chooseEphemeral(); }
+        });
+
+        selectionBar.findViewById(R.id.sel_copy).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { copySelected(); }
+        });
+        selectionBar.findViewById(R.id.sel_forward).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { forwardSelected(); }
+        });
+        selectionBar.findViewById(R.id.sel_delete).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { deleteSelected(); }
+        });
+        selectionBar.findViewById(R.id.sel_close).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { clearSelection(); }
+        });
+
+        int ttl = getIntent().getIntExtra("ephemeral", 0);
+        if (ttl > 0) {
+            ephemeralTtl = ttl;
+            showEphemeralBanner();
+        }
+        if (peerId != null) loadLastSeen();
+    }
+
+    private String initialOf(String s) {
+        if (s == null || s.isEmpty()) return "?";
+        return s.substring(0, 1).toUpperCase(Locale.getDefault());
+    }
+
+    private void refreshPresenceUi() {
+        if (discOnlineDot != null) discOnlineDot.setVisibility(View.GONE);
+        if (presenceText != null) presenceText.setVisibility(View.GONE);
+        if (peerId == null) return;
+        if (Presence.isOnline(peerId)) {
+            if (discOnlineDot != null) discOnlineDot.setVisibility(View.VISIBLE);
+            if (presenceText != null) {
+                presenceText.setText(R.string.online_now);
+                presenceText.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+
+    private void loadLastSeen() {
+        if (peerId == null) return;
+        Async.exec(this, new Async.Worker<Long>() {
+            @Override public Long run() throws Exception {
+                return ApiClient.lastSeen(session.token(), peerId);
+            }
+        }, new Async.UI<Long>() {
+            @Override public void on(Long ts, Exception err) {
+                refreshPresenceUi();
+                if (ts == null || ts <= 0 || Presence.isOnline(peerId)) return;
+                if (presenceText != null) {
+                    presenceText.setText(getString(R.string.last_seen_fmt, fmtTime(ts)));
+                    presenceText.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+    }
+
+    private void showEphemeralBanner() {
+        if (ephemeralBanner == null) return;
+        ephemeralBanner.setVisibility(View.VISIBLE);
+    }
+
+    private void chooseEphemeral() {
+        final int[] opts = {0, 1, 60, 3600, 86400, 604800};
+        final String[] labels = {
+                getString(R.string.ephemeral_off),
+                getString(R.string.ephemeral_set, fmtDuration(1000)),
+                getString(R.string.ephemeral_set, fmtDuration(60 * 1000L)),
+                getString(R.string.ephemeral_set, fmtDuration(3600 * 1000L)),
+                getString(R.string.ephemeral_set, fmtDuration(86400 * 1000L)),
+                getString(R.string.ephemeral_set, fmtDuration(7L * 86400 * 1000L))
+        };
+        AlertDialog.Builder b = new AlertDialog.Builder(this);
+        b.setTitle(R.string.ephemeral_prompt);
+        b.setItems(labels, new DialogInterface.OnClickListener() {
+            @Override public void onClick(DialogInterface d, int which) {
+                setEphemeral(opts[which]);
+            }
+        });
+        b.show();
+    }
+
+    private void setEphemeral(final int ttl) {
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() throws Exception {
+                return ApiClient.setEphemeral(session.token(), convId, ttl);
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                ephemeralTtl = ttl;
+                if (ttl > 0) showEphemeralBanner();
+                else if (ephemeralBanner != null) ephemeralBanner.setVisibility(View.GONE);
+                if (peerId != null) {
+                    try {
+                        JSONObject o = new JSONObject();
+                        o.put("type", "ephemeral");
+                        o.put("conv_id", convId);
+                        o.put("ttl", ttl);
+                        Realtime.get().send(o.toString());
+                    } catch (Exception ignored) {}
+                }
+            }
+        });
     }
 
     private void applyGlass() {
@@ -1163,9 +1310,36 @@ public class DiscussionActivity extends Activity {
                     }
                 }
                 if (changed) refresh();
+            } else if ("presence".equals(type)) {
+                String who = (String) m.get("user_id");
+                if (who != null) {
+                    boolean online = Boolean.TRUE.equals(m.get("online"));
+                    Presence.set(who, online);
+                    if (who.equals(peerId)) {
+                        runOnUiThread(new Runnable() {
+                            @Override public void run() { refreshPresenceUi(); }
+                        });
+                    }
+                }
+            } else if ("ephemeral".equals(type)) {
+                if (convId.equals(m.get("conv_id"))) {
+                    int ttl = toInt(m.get("ttl"));
+                    ephemeralTtl = ttl;
+                    runOnUiThread(new Runnable() {
+                        @Override public void run() {
+                            if (ttl > 0) showEphemeralBanner();
+                            else if (ephemeralBanner != null) ephemeralBanner.setVisibility(View.GONE);
+                        }
+                    });
+                }
             }
         } catch (Exception ignored) {
         }
+    }
+
+    private static int toInt(Object o) {
+        if (o instanceof Number) return ((Number) o).intValue();
+        return 0;
     }
 
     private static long toLong(Object o) {
@@ -1310,6 +1484,152 @@ public class DiscussionActivity extends Activity {
         return m + ":" + (r < 10 ? "0" : "") + r;
     }
 
+    private static String fmtTime(long ts) {
+        java.text.DateFormat df = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT);
+        return df.format(new java.util.Date(ts));
+    }
+
+    private String otherId(String convId) {
+        if (convId == null || !convId.startsWith("dm:")) return null;
+        String[] parts = convId.split(":", 2);
+        if (parts.length < 2) return null;
+        String[] ids = parts[1].split("\\+");
+        String me = session.userId();
+        for (String id : ids) {
+            if (!id.equals(me)) return id;
+        }
+        return ids.length > 0 ? ids[0] : null;
+    }
+
+    private void onRowTap(Message m) {
+        if (!selecting) return;
+        if (selectedIds.contains(m.id)) selectedIds.remove(m.id);
+        else selectedIds.add(m.id);
+        adapter.notifyDataSetChanged();
+        updateSelectionBar();
+    }
+
+    private void onRowLongPress(Message m) {
+        if (!selecting) {
+            selecting = true;
+            selectedIds.clear();
+        }
+        if (selectedIds.contains(m.id)) selectedIds.remove(m.id);
+        else selectedIds.add(m.id);
+        adapter.notifyDataSetChanged();
+        updateSelectionBar();
+    }
+
+    private void updateSelectionBar() {
+        if (selectionBar == null) return;
+        if (!selecting || selectedIds.isEmpty()) {
+            selectionBar.setVisibility(View.GONE);
+            return;
+        }
+        selectionBar.setVisibility(View.VISIBLE);
+        if (selectionCount != null) {
+            selectionCount.setText(getString(R.string.selection_count, selectedIds.size()));
+        }
+    }
+
+    private void clearSelection() {
+        selecting = false;
+        selectedIds.clear();
+        adapter.notifyDataSetChanged();
+        updateSelectionBar();
+    }
+
+    private void copySelected() {
+        StringBuilder sb = new StringBuilder();
+        for (Message m : msgMap.values()) {
+            if (selectedIds.contains(m.id)) {
+                if (sb.length() > 0) sb.append("\n");
+                sb.append(m.body != null ? m.body : "");
+            }
+        }
+        ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (cm != null) cm.setText(sb.toString());
+        clearSelection();
+    }
+
+    private void forwardSelected() {
+        final List<Message> msgs = new ArrayList<Message>();
+        for (Message m : msgMap.values()) {
+            if (selectedIds.contains(m.id) && !"system".equals(m.type)) msgs.add(m);
+        }
+        if (msgs.isEmpty()) {
+            clearSelection();
+            return;
+        }
+        final String token = session.token();
+        Async.exec(this, new Async.Worker<List<Conversation>>() {
+            @Override public List<Conversation> run() {
+                try {
+                    ApiClient.ApiResponse c = ApiClient.call("GET", "/api/conversations", null, token);
+                    if (c.status != 200) return null;
+                    Map<String, Object> cm = Json.parseObject(c.body);
+                    List<Object> arr = (List<Object>) cm.get("conversations");
+                    List<Conversation> convs = new ArrayList<Conversation>();
+                    if (arr != null) {
+                        for (Object o : arr) {
+                            @SuppressWarnings("unchecked") Map<String, Object> x = (Map<String, Object>) o;
+                            Conversation cv = Conversation.fromJson(x);
+                            if (!convId.equals(cv.convId)) convs.add(cv);
+                        }
+                    }
+                    return convs;
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+        }, new Async.UI<List<Conversation>>() {
+            @Override public void on(List<Conversation> convs, Exception err) {
+                if (convs == null || convs.isEmpty()) {
+                    showStatus(getString(R.string.msg_no_convs));
+                    clearSelection();
+                    return;
+                }
+                final String[] labels = new String[convs.size()];
+                for (int i = 0; i < convs.size(); i++) labels[i] = titleFor(convs.get(i));
+                new AlertDialog.Builder(DiscussionActivity.this)
+                        .setTitle(R.string.msg_forward_to)
+                        .setItems(labels, new DialogInterface.OnClickListener() {
+                            @Override public void onClick(DialogInterface d, int which) {
+                                for (Message m : msgs) doForward(m, convs.get(which));
+                                clearSelection();
+                            }
+                        })
+                        .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                            @Override public void onClick(DialogInterface d, int w) { clearSelection(); }
+                        })
+                        .show();
+            }
+        });
+    }
+
+    private void deleteSelected() {
+        final List<String> ids = new ArrayList<String>();
+        for (Message m : msgMap.values()) if (selectedIds.contains(m.id)) ids.add(m.id);
+        if (ids.isEmpty()) return;
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() throws Exception {
+                boolean ok = true;
+                for (String id : ids) {
+                    if (!ApiClient.deleteMessage(session.token(), id)) ok = false;
+                }
+                return ok;
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                for (String id : ids) msgMap.remove(id);
+                clearSelection();
+                runOnUiThread(new Runnable() {
+                    @Override public void run() { refresh(); }
+                });
+            }
+        });
+    }
+
     private void stopPlayer() {
         MediaPlayer p = player;
         player = null;
@@ -1317,31 +1637,36 @@ public class DiscussionActivity extends Activity {
             try { p.stop(); } catch (Exception ignored) {}
             try { p.release(); } catch (Exception ignored) {}
         }
-        if (playerBtn != null && playerBase != null) playerBtn.setText(playerBase);
-        playerBtn = null;
-        playerBase = null;
+        handler.removeCallbacks(waveTicker);
+        if (activeWave != null) activeWave.setProgress(0f);
+        activeWave = null;
+        playingId = null;
+        lastProgress = 0f;
     }
 
-    private void bindAudio(final TextView btn, final Message m) {
-        final String base = "\u25B6 " + fmtDuration(m.durationMs);
-        btn.setText(base);
+    private void bindAudio(final View root, final Message m) {
+        final TextView btn = root.findViewById(R.id.btn_audio);
+        final WaveView wave = root.findViewById(R.id.wave);
+        final TextView time = root.findViewById(R.id.audio_time);
+        if (wave != null) wave.setSeed(hashSeed(m.id));
+        if (time != null) time.setText(fmtDuration(m.durationMs));
+        if (wave != null) wave.setProgress(m.id.equals(playingId) ? lastProgress : 0f);
         btn.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) { playAudio(btn, m, base); }
+            @Override public void onClick(View v) { playAudio(m, wave); }
         });
     }
 
-    private void playAudio(final TextView btn, final Message m, final String base) {
-        if (player != null && player.isPlaying()) {
+    private void playAudio(final Message m, final WaveView wave) {
+        if (player != null && player.isPlaying() && m.id.equals(playingId)) {
             stopPlayer();
             return;
         }
-        final String key = m.mediaKey;
-        if (key == null || key.isEmpty()) {
-            btn.setText(R.string.media_err);
-            return;
+        if (player != null && player.isPlaying()) {
+            stopPlayer();
         }
-        playerBtn = btn;
-        playerBase = base;
+        final String key = m.mediaKey;
+        if (key == null || key.isEmpty()) return;
+        activeWave = wave;
         Async.exec(this, new Async.Worker<String>() {
             @Override public String run() throws Exception {
                 if (!MediaStore.exists(DiscussionActivity.this, key)) {
@@ -1353,27 +1678,45 @@ public class DiscussionActivity extends Activity {
             }
         }, new Async.UI<String>() {
             @Override public void on(String path, Exception err) {
-                if (path == null) {
-                    btn.setText(R.string.media_err);
-                    return;
-                }
+                if (path == null) return;
                 try {
                     MediaPlayer p = new MediaPlayer();
                     p.setDataSource(path);
                     p.prepare();
+                    final long dur = p.getDuration();
+                    playingId = m.id;
                     p.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                         @Override public void onCompletion(MediaPlayer mp) { stopPlayer(); }
                     });
                     p.start();
                     player = p;
-                    btn.setText("\u25A0 " + fmtDuration(m.durationMs));
+                    handler.removeCallbacks(waveTicker);
+                    handler.post(waveTicker);
                 } catch (Exception e) {
-                    btn.setText(R.string.media_err);
-                    playerBtn = null;
-                    playerBase = null;
                 }
             }
         });
+    }
+
+    private final Runnable waveTicker = new Runnable() {
+        @Override public void run() {
+            if (player != null && player.isPlaying() && activeWave != null) {
+                try {
+                    long d = player.getDuration();
+                    long c = player.getCurrentPosition();
+                    float pr = d > 0 ? (float) c / d : 0f;
+                    lastProgress = pr;
+                    activeWave.setProgress(pr);
+                } catch (Exception ignored) {}
+                handler.postDelayed(this, 200L);
+            }
+        }
+    };
+
+    private long hashSeed(String id) {
+        long h = 0;
+        if (id != null) for (int i = 0; i < id.length(); i++) h = 31 * h + id.charAt(i);
+        return h == 0 ? 1 : h;
     }
 
     private void showPhotoErr(ImageView img, TextView err) {
@@ -1546,8 +1889,16 @@ public class DiscussionActivity extends Activity {
             }
             convertView.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override public boolean onLongClick(View v) {
-                    if (!"system".equals(m.type)) showMessageActions(m);
+                    if (!"system".equals(m.type)) {
+                        if (selecting) onRowLongPress(m);
+                        else showMessageActions(m);
+                    }
                     return true;
+                }
+            });
+            convertView.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    if (selecting) onRowTap(m);
                 }
             });
             switch (type) {
@@ -1575,7 +1926,7 @@ public class DiscussionActivity extends Activity {
                     boolean mineA = type == TYPE_ME_AUDIO;
                     ab.setBackground(Skin.bubble(mineA));
                     ab.setTextColor(mineA ? Skin.palette().onPrimary : Skin.palette().onSurface);
-                    bindAudio(ab, m);
+                    bindAudio(convertView, m);
                     break;
                 }
                 default: {
@@ -1609,6 +1960,13 @@ public class DiscussionActivity extends Activity {
     }
 
     private void bindCommon(View root, Message m) {
+        if (selecting && selectedIds.contains(m.id)) {
+            int c = Skin.palette().primary;
+            root.setBackgroundColor(android.graphics.Color.argb(0x33,
+                    android.graphics.Color.red(c), android.graphics.Color.green(c), android.graphics.Color.blue(c)));
+        } else {
+            root.setBackgroundResource(android.R.color.transparent);
+        }
         TextView rt = root.findViewById(R.id.msg_reactions);
         if (rt != null) {
             if (m.reactions != null && !m.reactions.isEmpty()) {

@@ -61,6 +61,13 @@ public final class Realtime {
         return open;
     }
 
+    public void send(String text) {
+        WsClient c = client;
+        if (c != null) {
+            try { c.sendText(text); } catch (Exception ignored) {}
+        }
+    }
+
     public void addListener(Listener l) {
         synchronized (listeners) {
             if (!listeners.contains(l)) listeners.add(l);

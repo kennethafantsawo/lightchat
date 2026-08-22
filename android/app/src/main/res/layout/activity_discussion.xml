@@ -75,18 +75,55 @@
             android:tint="@color/primary"
             android:contentDescription="@string/back" />
 
-        <TextView
-            android:id="@+id/txt_title"
+        <FrameLayout
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="6dp">
+
+            <TextView
+                android:id="@+id/avatar_disc"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:textColor="#ffffffff"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_avatar" />
+
+            <View
+                android:id="@+id/disc_online_dot"
+                android:layout_width="11dp"
+                android:layout_height="11dp"
+                android:layout_gravity="bottom|end"
+                android:background="@drawable/bg_online_dot"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:padding="4dp"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:text="@string/app_name"
-            android:textColor="@color/on_surface"
-            android:textSize="@dimen/text_title"
-            android:textStyle="bold" />
+            android:orientation="vertical"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/txt_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="@string/app_name"
+                android:textColor="@color/on_surface"
+                android:textSize="@dimen/text_title"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txt_presence"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/on_surface_variant" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/txt_disc_status"
@@ -118,7 +155,29 @@
             android:text="@string/bell_on"
             android:textColor="@color/on_surface"
             android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/btn_ephemeral"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:gravity="center"
+            android:background="@drawable/bg_chip_ripple"
+            android:text="\uD83D\uDD25"
+            android:textColor="@color/on_surface"
+            android:textSize="16sp" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/ephemeral_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:gravity="center"
+        android:padding="6dp"
+        android:textColor="@color/on_surface"
+        android:textSize="12sp"
+        android:background="@drawable/bg_chip_ripple" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -169,6 +228,70 @@
             android:id="@+id/edit_cancel"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:gravity="center"
+            android:background="@drawable/bg_chip_ripple"
+            android:text="@string/disc_cancel"
+            android:textColor="@color/on_surface"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/selection_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone"
+        android:padding="8dp"
+        android:background="@drawable/bg_chip_ripple">
+
+        <TextView
+            android:id="@+id/selection_count"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:padding="4dp"
+            android:textColor="@color/on_surface"
+            android:textStyle="bold"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/sel_copy"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:background="@drawable/bg_chip_ripple"
+            android:text="@string/act_copy"
+            android:textColor="@color/on_surface"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/sel_forward"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:gravity="center"
+            android:background="@drawable/bg_chip_ripple"
+            android:text="@string/act_forward"
+            android:textColor="@color/on_surface"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/sel_delete"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:gravity="center"
+            android:background="@drawable/bg_chip_ripple"
+            android:text="@string/act_delete"
+            android:textColor="@color/on_surface"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/sel_close"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
             android:gravity="center"
             android:background="@drawable/bg_chip_ripple"
             android:text="@string/disc_cancel"

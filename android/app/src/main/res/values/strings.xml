@@ -77,6 +77,16 @@
     <string name="bell_on">🔔</string>
     <string name="bell_off">🔕</string>
     <string name="typing_now">en train d\'écrire…</string>
+    <string name="act_copy">Copier</string>
+    <string name="act_forward">Transférer</string>
+    <string name="act_delete">Supprimer</string>
+    <string name="online_now">en ligne</string>
+    <string name="last_seen_fmt">vu %1$s</string>
+    <string name="ephemeral_banner">💥 Messages éphémères : %1$s</string>
+    <string name="ephemeral_set">Messages auto-destructeurs réglés sur %1$s.</string>
+    <string name="ephemeral_off">Messages éphémères désactivés.</string>
+    <string name="ephemeral_prompt">Auto-destruction des messages (durée) :</string>
+    <string name="selection_count">%1$d sélectionné(s)</string>
     <string name="mute_status">Notifications désactivées pour cette conversation.</string>
     <string name="unmute_status">Notifications réactivées.</string>
 
