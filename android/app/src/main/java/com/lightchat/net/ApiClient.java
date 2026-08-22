@@ -556,7 +556,7 @@ public final class ApiClient {
     public static final class SyncResult {
         public final int messageCount;
         public final long now;
-        SyncResult(int messageCount, long now) {
+        public SyncResult(int messageCount, long now) {
             this.messageCount = messageCount;
             this.now = now;
         }
