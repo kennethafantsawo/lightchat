@@ -4,13 +4,14 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <androidx.media3.ui.PlayerView
-        android:id="@+id/video"
+    <com.github.chrisbanes.photoview.PhotoView
+        android:id="@+id/zoom_image"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:scaleType="fitCenter" />
 
     <TextView
-        android:id="@+id/btn_video_back"
+        android:id="@+id/zoom_back"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="start|top"
@@ -21,7 +22,7 @@
         android:textSize="28sp" />
 
     <TextView
-        android:id="@+id/txt_video_err"
+        android:id="@+id/zoom_err"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"

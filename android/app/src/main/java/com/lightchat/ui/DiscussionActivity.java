@@ -51,6 +51,8 @@ import com.lightchat.net.ApiClient;
 import com.lightchat.net.Realtime;
 import com.lightchat.util.Async;
 import com.lightchat.util.AvatarLoader;
+import com.lightchat.util.GlideAuth;
+import com.bumptech.glide.Glide;
 import com.lightchat.util.Json;
 import com.lightchat.util.MediaStore;
 import com.lightchat.util.Presence;
@@ -557,17 +559,7 @@ public class DiscussionActivity extends Activity {
 
     private void loadAbsImage(final ImageView iv, final String url) {
         if (url == null || url.isEmpty()) return;
-        Async.exec(DiscussionActivity.this, new Async.Worker<Bitmap>() {
-            @Override public Bitmap run() throws Exception {
-                byte[] b = downloadBytes(url);
-                if (b == null) return null;
-                return BitmapFactory.decodeByteArray(b, 0, b.length);
-            }
-        }, new Async.UI<Bitmap>() {
-            @Override public void on(Bitmap bmp, Exception e) {
-                if (bmp != null && !bmp.isRecycled()) iv.setImageBitmap(bmp);
-            }
-        });
+        Glide.with(iv).load(url).into(iv);
     }
 
     private byte[] downloadBytes(String urlStr) {
@@ -2094,34 +2086,39 @@ public class DiscussionActivity extends Activity {
             showPhotoErr(img, err);
             return;
         }
-        Bitmap cached = bmpCache.get(key);
-        if (cached != null && !cached.isRecycled()) {
-            img.setImageBitmap(cached);
-            err.setVisibility(View.GONE);
+        if ("video".equals(m.type)) {
+            Bitmap cached = bmpCache.get(key);
+            if (cached != null && !cached.isRecycled()) {
+                img.setImageBitmap(cached);
+                err.setVisibility(View.GONE);
+                return;
+            }
+            Async.exec(this, new Async.Worker<Bitmap>() {
+                @Override public Bitmap run() throws Exception {
+                    File f = MediaStore.localFile(DiscussionActivity.this, key);
+                    if (!f.exists()) {
+                        byte[] b = ApiClient.download("/api/media?key=" + key, session.token());
+                        if (b == null) return null;
+                        MediaStore.save(DiscussionActivity.this, key, b);
+                    }
+                    return frameFor(f, m);
+                }
+            }, new Async.UI<Bitmap>() {
+                @Override public void on(Bitmap bmp, Exception e) {
+                    if (img.getTag() == null || !key.equals(img.getTag())) return;
+                    if (bmp != null && !bmp.isRecycled()) {
+                        bmpCache.put(key, bmp);
+                        img.setImageBitmap(bmp);
+                        err.setVisibility(View.GONE);
+                    } else {
+                        showPhotoErr(img, err);
+                    }
+                }
+            });
             return;
         }
-        Async.exec(this, new Async.Worker<Bitmap>() {
-            @Override public Bitmap run() throws Exception {
-                File f = MediaStore.localFile(DiscussionActivity.this, key);
-                if (!f.exists()) {
-                    byte[] b = ApiClient.download("/api/media?key=" + key, session.token());
-                    if (b == null) return null;
-                    MediaStore.save(DiscussionActivity.this, key, b);
-                }
-                return frameFor(f, m);
-            }
-        }, new Async.UI<Bitmap>() {
-            @Override public void on(Bitmap bmp, Exception e) {
-                if (img.getTag() == null || !key.equals(img.getTag())) return;
-                if (bmp != null && !bmp.isRecycled()) {
-                    bmpCache.put(key, bmp);
-                    img.setImageBitmap(bmp);
-                    err.setVisibility(View.GONE);
-                } else {
-                    showPhotoErr(img, err);
-                }
-            }
-        });
+        GlideAuth.load(img, "/api/media?key=" + key, session.token());
+        err.setVisibility(View.GONE);
     }
 
     private void errorInvalidate(ImageView img, TextView err) {
@@ -2169,6 +2166,13 @@ public class DiscussionActivity extends Activity {
         Intent i = new Intent(this, VideoPlayerActivity.class);
         i.putExtra("media_key", key);
         i.putExtra("conv_id", convId);
+        startActivity(i);
+    }
+
+    private void openImage(String key) {
+        if (key == null || key.isEmpty()) return;
+        Intent i = new Intent(this, ImageZoomActivity.class);
+        i.putExtra("media_key", key);
         startActivity(i);
     }
 
@@ -2273,8 +2277,11 @@ public class DiscussionActivity extends Activity {
                             @Override public void onClick(View v) { openVideo(m.mediaKey); }
                         });
                     } else {
-                        photo.setClickable(false);
-                        photo.setOnClickListener(null);
+                        photo.setClickable(true);
+                        photo.setFocusable(true);
+                        photo.setOnClickListener(new View.OnClickListener() {
+                            @Override public void onClick(View v) { openImage(m.mediaKey); }
+                        });
                     }
                     bindPhoto(convertView, m);
                     break;

@@ -1,11 +1,15 @@
 package com.lightchat.ui;
 
 import android.app.Activity;
-import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.VideoView;
+
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.Player;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.ui.PlayerView;
 
 import com.lightchat.R;
 import com.lightchat.SessionStore;
@@ -14,14 +18,15 @@ import com.lightchat.util.Async;
 import com.lightchat.util.MediaStore;
 
 public class VideoPlayerActivity extends Activity {
-    private VideoView video;
+    private PlayerView playerView;
     private TextView error;
+    private ExoPlayer exoPlayer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_player);
-        video = findViewById(R.id.video);
+        playerView = findViewById(R.id.video);
         error = findViewById(R.id.txt_video_err);
         final String key = getIntent().getStringExtra("media_key");
         if (key == null || key.isEmpty()) {
@@ -49,17 +54,29 @@ public class VideoPlayerActivity extends Activity {
                     error.setText(R.string.media_err);
                     return;
                 }
-                video.setVideoPath(path);
-                video.setKeepScreenOn(true);
-                video.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-                    @Override public boolean onError(MediaPlayer mp, int what, int extra) {
+                exoPlayer = new ExoPlayer.Builder(VideoPlayerActivity.this).build();
+                exoPlayer.setMediaItem(MediaItem.fromUri(Uri.fromFile(
+                        MediaStore.localFile(VideoPlayerActivity.this, key))));
+                exoPlayer.setRepeatMode(Player.REPEAT_MODE_OFF);
+                exoPlayer.addListener(new Player.Listener() {
+                    @Override public void onPlayerError(androidx.media3.common.PlaybackException e) {
                         error.setVisibility(View.VISIBLE);
                         error.setText(R.string.media_err);
-                        return true;
                     }
                 });
-                video.start();
+                exoPlayer.prepare();
+                exoPlayer.play();
+                playerView.setPlayer(exoPlayer);
             }
         });
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (exoPlayer != null) {
+            exoPlayer.release();
+            exoPlayer = null;
+        }
     }
 }
