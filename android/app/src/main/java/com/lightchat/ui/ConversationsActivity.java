@@ -21,13 +21,18 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
+import android.widget.CompoundButton;
+import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.lightchat.R;
 import com.lightchat.SessionStore;
@@ -51,6 +56,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import org.json.JSONObject;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -92,6 +98,13 @@ public class ConversationsActivity extends Activity {
 
     private View settingsView;
     private TextView settingsStatus;
+
+    private Switch swHideOnline;
+    private Switch swHideLastSeen;
+    private Switch swReadReceipts;
+    private Spinner spinEphemeral;
+    private final int[] ephemeralValues = {0, 5, 60, 3600, 86400};
+    private boolean privacyApplying;
 
     private List<Conversation> pendingConvs;
     private Map<String, String> pendingNames;
@@ -329,9 +342,11 @@ public class ConversationsActivity extends Activity {
             });
             styleSettings(settingsView);
             buildThemePicker();
+            buildPrivacyControls();
         }
         showTab(settingsView);
         setNavSelection((TextView) tab);
+        loadPrivacy();
     }
 
     private void styleSettings(View root) {
@@ -350,6 +365,8 @@ public class ConversationsActivity extends Activity {
         user.setTextColor(Skin.palette().onSurface);
         TextView uid = root.findViewById(R.id.set_userid);
         uid.setTextColor(Skin.palette().onSurfaceVariant);
+        TextView privacyHeader = root.findViewById(R.id.privacy_header);
+        privacyHeader.setTextColor(Skin.palette().onSurface);
     }
 
     private void buildThemePicker() {
@@ -390,6 +407,156 @@ public class ConversationsActivity extends Activity {
             ml.bottomMargin = dp(8);
             row.setLayoutParams(ml);
         }
+    }
+
+    private void buildPrivacyControls() {
+        LinearLayout host = settingsView.findViewById(R.id.privacy_list);
+        host.removeAllViews();
+
+        swHideOnline = makeSwitchRow(host, R.string.privacy_hide_online, new CompoundButton.OnCheckedChangeListener() {
+            @Override public void onCheckedChanged(CompoundButton b, boolean c) {
+                savePrivacy("hide_online", c);
+            }
+        });
+        swHideLastSeen = makeSwitchRow(host, R.string.privacy_hide_last_seen, new CompoundButton.OnCheckedChangeListener() {
+            @Override public void onCheckedChanged(CompoundButton b, boolean c) {
+                savePrivacy("hide_last_seen", c);
+            }
+        });
+        swReadReceipts = makeSwitchRow(host, R.string.privacy_read_receipts, new CompoundButton.OnCheckedChangeListener() {
+            @Override public void onCheckedChanged(CompoundButton b, boolean c) {
+                savePrivacy("read_receipts", c);
+            }
+        });
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        int pad = dp(12);
+        row.setPadding(pad, pad, pad, pad);
+        row.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        row.setBackground(Skin.glassCard(dp(20)));
+        TextView label = new TextView(this);
+        label.setText(R.string.privacy_ephemeral);
+        label.setTextSize(15);
+        label.setTextColor(Skin.palette().onSurface);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        label.setLayoutParams(lp);
+        spinEphemeral = new Spinner(this);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.privacy_ephemeral_labels, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinEphemeral.setAdapter(adapter);
+        spinEphemeral.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                if (privacyApplying) return;
+                savePrivacy("ephemeral_default_ttl", ephemeralValues[pos]);
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+        row.addView(label);
+        row.addView(spinEphemeral);
+        host.addView(row);
+        ViewGroup.MarginLayoutParams ml = (ViewGroup.MarginLayoutParams) row.getLayoutParams();
+        ml.bottomMargin = dp(8);
+        row.setLayoutParams(ml);
+    }
+
+    private Switch makeSwitchRow(LinearLayout host, int labelRes, CompoundButton.OnCheckedChangeListener listener) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        int pad = dp(12);
+        row.setPadding(pad, pad, pad, pad);
+        row.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        row.setBackground(Skin.glassCard(dp(20)));
+        TextView label = new TextView(this);
+        label.setText(labelRes);
+        label.setTextSize(15);
+        label.setTextColor(Skin.palette().onSurface);
+        label.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        Switch sw = new Switch(this);
+        sw.setOnCheckedChangeListener(listener);
+        row.addView(label);
+        row.addView(sw);
+        host.addView(row);
+        ViewGroup.MarginLayoutParams ml = (ViewGroup.MarginLayoutParams) row.getLayoutParams();
+        ml.bottomMargin = dp(8);
+        row.setLayoutParams(ml);
+        return sw;
+    }
+
+    private void loadPrivacy() {
+        if (settingsView == null) return;
+        final String token = session.token();
+        if (token == null) return;
+        privacyApplying = true;
+        showStatus(getString(R.string.privacy_loading));
+        Async.exec(this, new Async.Worker<ApiClient.PrivacySettings>() {
+            @Override public ApiClient.PrivacySettings run() throws Exception {
+                final ApiClient.PrivacySettings[] holder = new ApiClient.PrivacySettings[1];
+                ApiClient.getPrivacy(token, new ApiClient.PrivacyCallback() {
+                    @Override public void on(ApiClient.PrivacySettings s, Exception err) {
+                        holder[0] = s;
+                    }
+                });
+                return holder[0];
+            }
+        }, new Async.UI<ApiClient.PrivacySettings>() {
+            @Override public void on(ApiClient.PrivacySettings s, Exception err) {
+                if (s != null) {
+                    swHideOnline.setChecked(s.hideOnline);
+                    swHideLastSeen.setChecked(s.hideLastSeen);
+                    swReadReceipts.setChecked(s.readReceipts);
+                    int idx = 0;
+                    for (int i = 0; i < ephemeralValues.length; i++) {
+                        if (ephemeralValues[i] == s.ephemeralTtl) { idx = i; break; }
+                    }
+                    spinEphemeral.setSelection(idx);
+                } else {
+                    Toast.makeText(ConversationsActivity.this, R.string.privacy_load_error, Toast.LENGTH_SHORT).show();
+                }
+                privacyApplying = false;
+                if (settingsStatus != null) settingsStatus.setVisibility(View.GONE);
+            }
+        });
+    }
+
+    private void savePrivacy(String key, boolean value) {
+        if (privacyApplying) return;
+        JSONObject o = new JSONObject();
+        try { o.put(key, value); } catch (Exception ignored) {}
+        putPrivacy(o);
+    }
+
+    private void savePrivacy(String key, int value) {
+        JSONObject o = new JSONObject();
+        try { o.put(key, value); } catch (Exception ignored) {}
+        putPrivacy(o);
+    }
+
+    private void putPrivacy(final JSONObject body) {
+        final String token = session.token();
+        if (token == null) return;
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() throws Exception {
+                final boolean[] ok = new boolean[1];
+                ApiClient.putPrivacy(token, body, new ApiClient.StatusCallback() {
+                    @Override public void on(boolean o, Exception err) { ok[0] = o; }
+                });
+                return ok[0];
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                if (ok != null && ok) {
+                    showStatus(getString(R.string.privacy_saved));
+                } else {
+                    Toast.makeText(ConversationsActivity.this, R.string.privacy_error, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 
     private void showStatus(String s) {

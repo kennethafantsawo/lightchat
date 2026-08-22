@@ -166,6 +166,24 @@
     <string name="settings_user_line">Pseudo : %1$s</string>
     <string name="settings_id_line">ID : %1$s</string>
 
+    <string name="privacy_label">Confidentialité</string>
+    <string name="privacy_hide_online">Masquer mon statut en ligne</string>
+    <string name="privacy_hide_last_seen">Masquer ma dernière connexion</string>
+    <string name="privacy_read_receipts">Accusés de lecture</string>
+    <string name="privacy_ephemeral">Messages éphémères par défaut</string>
+    <string name="privacy_loading">Chargement de la confidentialité…</string>
+    <string name="privacy_saved">Paramètres de confidentialité enregistrés.</string>
+    <string name="privacy_error">Échec de l\'enregistrement (réseau).</string>
+    <string name="privacy_load_error">Impossible de charger la confidentialité.</string>
+
+    <string-array name="privacy_ephemeral_labels">
+        <item>Désactivé</item>
+        <item>5 s</item>
+        <item>1 min</item>
+        <item>1 h</item>
+        <item>1 j</item>
+    </string-array>
+
     <string-array name="gender_labels">
         <item>Homme</item>
         <item>Femme</item>

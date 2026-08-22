@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONObject;
+
 import com.lightchat.util.Json;
 
 public final class ApiClient {
@@ -152,6 +154,58 @@ public final class ApiClient {
 
     public interface SearchCallback {
         void on(List<SearchResult> results, Exception err);
+    }
+
+    public static final class PrivacySettings {
+        public boolean hideOnline;
+        public boolean hideLastSeen;
+        public boolean readReceipts = true;
+        public int ephemeralTtl;
+        PrivacySettings() {}
+    }
+
+    public interface PrivacyCallback {
+        void on(PrivacySettings settings, Exception err);
+    }
+
+    public static void getPrivacy(String token, PrivacyCallback cb) {
+        PrivacySettings defaults = new PrivacySettings();
+        try {
+            ApiResponse r = call("GET", "/api/privacy", null, token);
+            PrivacySettings s = new PrivacySettings();
+            s.hideOnline = false;
+            s.hideLastSeen = false;
+            s.readReceipts = true;
+            s.ephemeralTtl = 0;
+            if (r.status == 200 && r.body != null && !r.body.isEmpty()) {
+                Map<String, Object> o = Json.parseObject(r.body);
+                Object setObj = o.get("settings");
+                if (setObj instanceof Map) {
+                    @SuppressWarnings("unchecked") Map<String, Object> m = (Map<String, Object>) setObj;
+                    if (m.get("hide_online") instanceof Boolean) s.hideOnline = (Boolean) m.get("hide_online");
+                    if (m.get("hide_last_seen") instanceof Boolean) s.hideLastSeen = (Boolean) m.get("hide_last_seen");
+                    if (m.get("read_receipts") instanceof Boolean) s.readReceipts = (Boolean) m.get("read_receipts");
+                    if (m.get("ephemeral_default_ttl") instanceof Number)
+                        s.ephemeralTtl = ((Number) m.get("ephemeral_default_ttl")).intValue();
+                }
+            }
+            cb.on(s, null);
+        } catch (Exception e) {
+            cb.on(defaults, e);
+        }
+    }
+
+    public interface StatusCallback {
+        void on(boolean ok, Exception err);
+    }
+
+    public static void putPrivacy(String token, JSONObject settings, StatusCallback cb) {
+        try {
+            ApiResponse r = call("PUT", "/api/privacy", settings.toString(), token);
+            cb.on(r.status >= 200 && r.status < 300, null);
+        } catch (Exception e) {
+            cb.on(false, e);
+        }
     }
 
     public static void searchMessages(String token, String query, String convId, int limit, SearchCallback cb) {
