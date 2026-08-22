@@ -184,6 +184,24 @@
         <item>1 j</item>
     </string-array>
 
+    <string name="blocked_header">Comptes bloqués</string>
+    <string name="blocked_empty">Aucun compte bloqué.</string>
+    <string name="blocked_loading">Chargement des comptes bloqués…</string>
+    <string name="blocked_load_error">Impossible de charger les comptes bloqués.</string>
+    <string name="blocked_unblock">Débloquer</string>
+    <string name="blocked_unblocked">Compte débloqué.</string>
+    <string name="blocked_blocked">Compte bloqué.</string>
+
+    <string name="msg_report">Signaler</string>
+    <string name="msg_block_sender">Bloquer l\'expéditeur</string>
+    <string name="report_title">Signaler le message</string>
+    <string name="report_reason_hint">Raison (spam, harcèlement, contenu inapproprié…)</string>
+    <string name="report_send">Envoyer</string>
+    <string name="report_sent">Message signalé. Merci.</string>
+    <string name="report_error">Échec du signalement.</string>
+    <string name="block_sender_done">Expéditeur bloqué.</string>
+    <string name="block_sender_error">Échec du blocage.</string>
+
     <string-array name="gender_labels">
         <item>Homme</item>
         <item>Femme</item>

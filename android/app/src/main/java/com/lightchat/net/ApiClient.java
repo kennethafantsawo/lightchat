@@ -208,6 +208,78 @@ public final class ApiClient {
         }
     }
 
+    public static final class BlockedUser {
+        public final String blockedId;
+        public final String username;
+        public final String displayName;
+        public final String avatarUrl;
+        BlockedUser(String blockedId, String username, String displayName, String avatarUrl) {
+            this.blockedId = blockedId;
+            this.username = username;
+            this.displayName = displayName;
+            this.avatarUrl = avatarUrl;
+        }
+    }
+
+    public interface BlocksCallback {
+        void on(List<BlockedUser> blocks, Exception err);
+    }
+
+    public static void blockUser(String token, String userId, StatusCallback cb) {
+        try {
+            String json = "{\"user_id\":\"" + esc(userId) + "\"}";
+            ApiResponse r = call("POST", "/api/block", json, token);
+            cb.on(r.status >= 200 && r.status < 300, null);
+        } catch (Exception e) {
+            cb.on(false, e);
+        }
+    }
+
+    public static void unblockUser(String token, String userId, StatusCallback cb) {
+        try {
+            ApiResponse r = call("DELETE", "/api/block/" + esc(userId), null, token);
+            cb.on(r.status >= 200 && r.status < 300, null);
+        } catch (Exception e) {
+            cb.on(false, e);
+        }
+    }
+
+    public static void getBlocks(String token, BlocksCallback cb) {
+        try {
+            ApiResponse r = call("GET", "/api/blocks", null, token);
+            List<BlockedUser> out = new ArrayList<BlockedUser>();
+            if (r.status == 200 && r.body != null && !r.body.isEmpty()) {
+                Map<String, Object> o = Json.parseObject(r.body);
+                Object arr = o.get("blocks");
+                if (arr instanceof List) {
+                    for (Object x : (List<Object>) arr) {
+                        if (!(x instanceof Map)) continue;
+                        @SuppressWarnings("unchecked") Map<String, Object> m = (Map<String, Object>) x;
+                        String id = m.get("blocked_id") == null ? "" : String.valueOf(m.get("blocked_id"));
+                        String un = m.get("username") == null ? "" : String.valueOf(m.get("username"));
+                        String dn = m.get("display_name") == null ? "" : String.valueOf(m.get("display_name"));
+                        String av = m.get("avatar_url") == null ? null : String.valueOf(m.get("avatar_url"));
+                        out.add(new BlockedUser(id, un, dn, av));
+                    }
+                }
+            }
+            cb.on(out, null);
+        } catch (Exception e) {
+            cb.on(new ArrayList<BlockedUser>(), e);
+        }
+    }
+
+    public static void reportMessage(String token, String messageId, String convId, String reason, StatusCallback cb) {
+        try {
+            String json = "{\"message_id\":\"" + esc(messageId) + "\",\"conv_id\":\""
+                    + esc(convId) + "\",\"reason\":\"" + esc(reason) + "\"}";
+            ApiResponse r = call("POST", "/api/report", json, token);
+            cb.on(r.status >= 200 && r.status < 300, null);
+        } catch (Exception e) {
+            cb.on(false, e);
+        }
+    }
+
     public static void searchMessages(String token, String query, String convId, int limit, SearchCallback cb) {
         try {
             StringBuilder url = new StringBuilder("/api/messages/search?q=");

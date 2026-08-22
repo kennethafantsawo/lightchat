@@ -38,6 +38,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.lightchat.R;
 import com.lightchat.SessionStore;
@@ -601,8 +602,16 @@ public class DiscussionActivity extends Activity {
             action.add(4);
         }
         if (!m.isDeleted() && !"system".equals(m.type)) {
-            opts.add(getString(m.isPinned() ? R.string.msg_unpin : R.string.msg_pin));
+            opts.add(getString(R.string.msg_pin));
             action.add(5);
+        }
+        if (!m.isDeleted() && !"system".equals(m.type) && !isMine(m)) {
+            opts.add(getString(R.string.msg_block_sender));
+            action.add(6);
+        }
+        if (!m.isDeleted() && !"system".equals(m.type)) {
+            opts.add(getString(R.string.msg_report));
+            action.add(7);
         }
         new AlertDialog.Builder(this)
             .setTitle(null)
@@ -614,7 +623,9 @@ public class DiscussionActivity extends Activity {
                     else if (a == 2) confirmDelete(m);
                     else if (a == 3) forward(m);
                     else if (a == 4) showReactionPicker(m);
-                    else doPin(m);
+                    else if (a == 5) doPin(m);
+                    else if (a == 6) blockSender(m);
+                    else showReportDialog(m);
                 }
             })
             .setNegativeButton(android.R.string.cancel, null)
@@ -671,6 +682,73 @@ public class DiscussionActivity extends Activity {
                     else hidePinnedBanner();
                 } else {
                     showStatus(getString(R.string.send_error));
+                }
+            }
+        });
+    }
+
+    private void blockSender(final Message m) {
+        final String senderId = m.senderId;
+        if (senderId == null || senderId.isEmpty()) return;
+        if (senderId.equals(session.userId())) return;
+        final String token = session.token();
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() throws Exception {
+                final boolean[] ok = new boolean[1];
+                ApiClient.blockUser(token, senderId, new ApiClient.StatusCallback() {
+                    @Override public void on(boolean o, Exception err) { ok[0] = o; }
+                });
+                return ok[0];
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                if (ok != null && ok) {
+                    Toast.makeText(DiscussionActivity.this, R.string.block_sender_done, Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(DiscussionActivity.this, R.string.block_sender_error, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    private void showReportDialog(final Message m) {
+        final EditText reasonInput = new EditText(this);
+        reasonInput.setSingleLine(false);
+        reasonInput.setHint(R.string.report_reason_hint);
+        reasonInput.setPadding(dp(12), dp(8), dp(12), dp(8));
+        reasonInput.setTextColor(Skin.palette().onSurface);
+        reasonInput.setHintTextColor(Skin.palette().onSurfaceVariant);
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.report_title)
+            .setView(reasonInput)
+            .setPositiveButton(R.string.report_send, new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int w) {
+                    String reason = reasonInput.getText().toString().trim();
+                    reportMessage(m, reason);
+                }
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
+    }
+
+    private void reportMessage(final Message m, final String reason) {
+        final String token = session.token();
+        final String mid = m.id;
+        final String conv = convId;
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() throws Exception {
+                final boolean[] ok = new boolean[1];
+                ApiClient.reportMessage(token, mid, conv, reason, new ApiClient.StatusCallback() {
+                    @Override public void on(boolean o, Exception err) { ok[0] = o; }
+                });
+                return ok[0];
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                if (ok != null && ok) {
+                    Toast.makeText(DiscussionActivity.this, R.string.report_sent, Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(DiscussionActivity.this, R.string.report_error, Toast.LENGTH_SHORT).show();
                 }
             }
         });

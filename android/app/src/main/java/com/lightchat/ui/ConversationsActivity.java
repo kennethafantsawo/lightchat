@@ -106,6 +106,10 @@ public class ConversationsActivity extends Activity {
     private final int[] ephemeralValues = {0, 5, 60, 3600, 86400};
     private boolean privacyApplying;
 
+    private LinearLayout blockedList;
+    private TextView blockedEmpty;
+    private final List<ApiClient.BlockedUser> blockedItems = new ArrayList<ApiClient.BlockedUser>();
+
     private List<Conversation> pendingConvs;
     private Map<String, String> pendingNames;
     private Map<String, String> pendingColors;
@@ -343,10 +347,15 @@ public class ConversationsActivity extends Activity {
             styleSettings(settingsView);
             buildThemePicker();
             buildPrivacyControls();
+            blockedList = settingsView.findViewById(R.id.blocked_list);
+            blockedEmpty = settingsView.findViewById(R.id.blocked_empty);
+            TextView blockedHdr = settingsView.findViewById(R.id.blocked_header);
+            blockedHdr.setTextColor(Skin.palette().onSurface);
         }
         showTab(settingsView);
         setNavSelection((TextView) tab);
         loadPrivacy();
+        loadBlocks();
     }
 
     private void styleSettings(View root) {
@@ -520,6 +529,93 @@ public class ConversationsActivity extends Activity {
                 }
                 privacyApplying = false;
                 if (settingsStatus != null) settingsStatus.setVisibility(View.GONE);
+            }
+        });
+    }
+
+    private void loadBlocks() {
+        if (settingsView == null || blockedList == null) return;
+        final String token = session.token();
+        if (token == null) return;
+        blockedEmpty.setVisibility(View.GONE);
+        Async.exec(this, new Async.Worker<List<ApiClient.BlockedUser>>() {
+            @Override public List<ApiClient.BlockedUser> run() throws Exception {
+                final List<ApiClient.BlockedUser>[] holder = new List[1];
+                ApiClient.getBlocks(token, new ApiClient.BlocksCallback() {
+                    @Override public void on(List<ApiClient.BlockedUser> blocks, Exception err) {
+                        holder[0] = blocks;
+                    }
+                });
+                return holder[0];
+            }
+        }, new Async.UI<List<ApiClient.BlockedUser>>() {
+            @Override public void on(List<ApiClient.BlockedUser> blocks, Exception err) {
+                blockedItems.clear();
+                if (blocks != null) blockedItems.addAll(blocks);
+                renderBlocked();
+            }
+        });
+    }
+
+    private void renderBlocked() {
+        if (blockedList == null) return;
+        blockedList.removeAllViews();
+        if (blockedItems.isEmpty()) {
+            blockedEmpty.setVisibility(View.VISIBLE);
+            return;
+        }
+        blockedEmpty.setVisibility(View.GONE);
+        for (final ApiClient.BlockedUser bu : blockedItems) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            int pad = dp(12);
+            row.setPadding(pad, pad, pad, pad);
+            row.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            row.setBackground(Skin.glassCard(dp(20)));
+            TextView label = new TextView(this);
+            String name = (bu.displayName != null && !bu.displayName.isEmpty())
+                    ? bu.displayName : (bu.username != null ? "@" + bu.username : bu.blockedId);
+            label.setText(name);
+            label.setTextSize(15);
+            label.setTextColor(Skin.palette().onSurface);
+            label.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            row.addView(label);
+            Button unblock = new Button(this);
+            unblock.setText(R.string.blocked_unblock);
+            unblock.setBackground(Skin.outlinePill(dp(20), Skin.palette().onSurfaceVariant));
+            unblock.setTextColor(Skin.palette().onSurface);
+            unblock.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { doUnblock(bu.blockedId); }
+            });
+            row.addView(unblock);
+            blockedList.addView(row);
+            ViewGroup.MarginLayoutParams ml = (ViewGroup.MarginLayoutParams) row.getLayoutParams();
+            ml.bottomMargin = dp(8);
+            row.setLayoutParams(ml);
+        }
+    }
+
+    private void doUnblock(final String blockedId) {
+        final String token = session.token();
+        if (token == null) return;
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() throws Exception {
+                final boolean[] ok = new boolean[1];
+                ApiClient.unblockUser(token, blockedId, new ApiClient.StatusCallback() {
+                    @Override public void on(boolean o, Exception err) { ok[0] = o; }
+                });
+                return ok[0];
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                if (ok != null && ok) {
+                    Toast.makeText(ConversationsActivity.this, R.string.blocked_unblocked, Toast.LENGTH_SHORT).show();
+                    loadBlocks();
+                } else {
+                    Toast.makeText(ConversationsActivity.this, R.string.blocked_load_error, Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
