@@ -6,7 +6,7 @@
     android:gravity="end"
     android:padding="8dp">
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:id="@+id/reply_preview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -30,7 +30,7 @@
         android:maxWidth="280dp"
         android:background="@drawable/bg_btn_primary">
 
-        <TextView
+        <com.lightchat.widget.EmojiTextView
             android:id="@+id/bubble_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -39,7 +39,7 @@
             android:textColor="@color/on_primary"
             android:textSize="15sp" />
 
-        <TextView
+        <com.lightchat.widget.EmojiTextView
             android:id="@+id/msg_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -48,7 +48,7 @@
             android:textSize="11sp" />
     </LinearLayout>
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:id="@+id/msg_reactions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -63,7 +63,7 @@
         android:textColor="@color/on_surface_variant"
         android:textSize="12sp" />
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:id="@+id/msg_meta"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

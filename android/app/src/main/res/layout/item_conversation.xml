@@ -11,7 +11,7 @@
         android:layout_width="46dp"
         android:layout_height="46dp">
 
-        <TextView
+        <com.lightchat.widget.EmojiTextView
             android:id="@+id/avatar"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -37,7 +37,7 @@
         android:layout_marginStart="12dp"
         android:orientation="vertical">
 
-        <TextView
+        <com.lightchat.widget.EmojiTextView
             android:id="@+id/row_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -47,7 +47,7 @@
             android:maxLines="1"
             android:ellipsize="end" />
 
-        <TextView
+        <com.lightchat.widget.EmojiTextView
             android:id="@+id/row_preview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -57,7 +57,7 @@
             android:ellipsize="end" />
     </LinearLayout>
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:id="@+id/row_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -65,7 +65,7 @@
         android:textSize="12sp"
         android:layout_marginStart="8dp" />
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:id="@+id/row_mute"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -75,7 +75,7 @@
         android:textSize="14sp"
         android:visibility="gone" />
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:id="@+id/row_unread"
         android:layout_width="22dp"
         android:layout_height="22dp"
@@ -86,7 +86,7 @@
         android:textStyle="bold"
         android:visibility="gone" />
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="2dp"

@@ -355,7 +355,7 @@
                 android:textColor="@color/on_surface" />
         </LinearLayout>
 
-        <EditText
+        <com.lightchat.widget.EmojiEditText
             android:id="@+id/input_msg"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -476,7 +476,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
-                <EditText
+                <com.lightchat.widget.EmojiEditText
                     android:id="@+id/gif_query"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"

@@ -6,7 +6,7 @@
     android:gravity="end"
     android:padding="8dp">
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:id="@+id/reply_preview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -21,7 +21,7 @@
         android:textColor="@color/on_surface_variant"
         android:textSize="13sp" />
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:id="@+id/btn_audio"
         android:layout_width="40dp"
         android:layout_height="40dp"
@@ -39,14 +39,14 @@
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp" />
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:id="@+id/audio_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/on_primary"
         android:textSize="12sp" />
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:id="@+id/msg_reactions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -61,7 +61,7 @@
         android:textColor="@color/on_surface_variant"
         android:textSize="12sp" />
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:id="@+id/msg_meta"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -71,7 +71,7 @@
         android:textColor="@color/on_surface_variant"
         android:textSize="11sp" />
 
-    <TextView
+    <com.lightchat.widget.EmojiTextView
         android:id="@+id/msg_status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
