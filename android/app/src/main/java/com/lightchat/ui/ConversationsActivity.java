@@ -6,8 +6,11 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -40,9 +43,12 @@ import com.lightchat.util.AvatarLoader;
 import com.lightchat.util.Presence;
 import com.lightchat.util.Skin;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,6 +87,7 @@ public class ConversationsActivity extends Activity {
 
     private static final int REQ_NOTIF = 2001;
     private static final int REQ_STORAGE = 2002;
+    private static final int REQ_AVATAR = 2003;
     private static boolean notifAsked = false;
 
     private View settingsView;
@@ -317,6 +324,9 @@ public class ConversationsActivity extends Activity {
             settingsView.findViewById(R.id.btn_clear_cache).setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { clearCache(); }
             });
+            settingsView.findViewById(R.id.btn_avatar).setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { pickAvatar(); }
+            });
             styleSettings(settingsView);
             buildThemePicker();
         }
@@ -333,6 +343,9 @@ public class ConversationsActivity extends Activity {
         Button clear = root.findViewById(R.id.btn_clear_cache);
         clear.setBackground(Skin.outlinePill(dp(24), Skin.palette().onSurfaceVariant));
         clear.setTextColor(Skin.palette().onSurface);
+        Button avatar = root.findViewById(R.id.btn_avatar);
+        avatar.setBackground(Skin.pill_primary(dp(24)));
+        avatar.setTextColor(Skin.palette().onPrimary);
         TextView user = root.findViewById(R.id.set_username);
         user.setTextColor(Skin.palette().onSurface);
         TextView uid = root.findViewById(R.id.set_userid);
@@ -1017,6 +1030,79 @@ public class ConversationsActivity extends Activity {
         String hex = (String) m.get("color");
         if (hex == null) return fallback;
         try { return Color.parseColor(hex); } catch (Exception e) { return fallback; }
+    }
+
+    private void pickAvatar() {
+        Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+        i.setType("image/*");
+        startActivityForResult(i, REQ_AVATAR);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_AVATAR) return;
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        final Uri uri = data.getData();
+        Async.exec(this, new Async.Worker<byte[]>() {
+            @Override public byte[] run() throws Exception {
+                return avatarBytes(uri);
+            }
+        }, new Async.UI<byte[]>() {
+            @Override public void on(byte[] bytes, Exception err) {
+                if (err != null || bytes == null || bytes.length == 0) {
+                    showStatus(getString(R.string.settings_avatar_error));
+                    return;
+                }
+                try {
+                    ApiClient.ApiResponse r = ApiClient.uploadAvatar(session.token(), bytes);
+                    showStatus(r.status == 200 ? getString(R.string.settings_avatar_status)
+                            : getString(R.string.settings_avatar_error));
+                } catch (Exception e) {
+                    showStatus(getString(R.string.settings_avatar_error));
+                }
+            }
+        });
+    }
+
+    private byte[] avatarBytes(Uri uri) throws Exception {
+        InputStream in = getContentResolver().openInputStream(uri);
+        if (in == null) throw new IOException("Impossible d'ouvrir l'image");
+        final int maxEdge = 512;
+        Bitmap bmp;
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeStream(in, null, bounds);
+            in.close();
+            int w = bounds.outWidth, h = bounds.outHeight;
+            int scale = 1;
+            while (Math.max(w, h) / scale > maxEdge) scale *= 2;
+            InputStream in2 = getContentResolver().openInputStream(uri);
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inSampleSize = scale;
+            bmp = BitmapFactory.decodeStream(in2, null, o);
+            if (in2 != null) in2.close();
+        } finally {
+            // no-op
+        }
+        if (bmp == null) throw new IOException("Décodage impossible");
+        int outW = bmp.getWidth(), outH = bmp.getHeight();
+        float ratio = (float) maxEdge / Math.max(outW, outH);
+        if (ratio < 1f) {
+            Bitmap scaled = Bitmap.createScaledBitmap(bmp, (int) (outW * ratio), (int) (outH * ratio), true);
+            bmp.recycle();
+            bmp = scaled;
+        }
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        int q = 90;
+        do {
+            bos.reset();
+            bmp.compress(Bitmap.CompressFormat.JPEG, q, bos);
+            q -= 10;
+        } while (bos.size() > 2 * 1024 * 1024 && q > 30);
+        bmp.recycle();
+        return bos.toByteArray();
     }
 
     private static String esc(String s) {

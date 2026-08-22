@@ -153,6 +153,9 @@
     <string name="notif_channel_service">Service</string>
 
     <string name="settings_save_media">Sauvegarder les médias sur la carte SD</string>
+    <string name="settings_avatar">Changer la photo de profil</string>
+    <string name="settings_avatar_status">Photo de profil mise à jour.</string>
+    <string name="settings_avatar_error">Échec de l\'envoi de la photo.</string>
     <string name="settings_clear_cache">Vider le cache médias</string>
     <string name="settings_status_saved">%1$d médias sauvegardés dans %2$s.</string>
     <string name="settings_status_no_media">Aucun média en cache.</string>

@@ -45,6 +45,15 @@
                 android:layout_height="wrap_content"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btn_avatar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/settings_avatar"
+                android:background="@drawable/bg_btn_primary_ripple"
+                android:textColor="@color/on_primary" />
         </LinearLayout>
 
         <TextView

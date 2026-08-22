@@ -79,6 +79,10 @@ public final class ApiClient {
         }
     }
 
+    public static ApiResponse uploadAvatar(String token, byte[] data) throws IOException {
+        return upload("/api/avatar", data, "image/jpeg", token);
+    }
+
     public static byte[] download(String path, String token) throws IOException {
         HttpURLConnection conn = (HttpURLConnection) new URL(Endpoints.url(path)).openConnection();
         try {
