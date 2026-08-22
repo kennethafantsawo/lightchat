@@ -4,6 +4,7 @@ export class ChatRoom {
   state: DurableObjectState;
   env: Env;
   sockets: Map<string, WebSocket> = new Map(); // userId -> socket la plus récente
+  conns: Map<string, number> = new Map();      // userId -> nombre de sockets ouvertes
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
@@ -40,16 +41,45 @@ export class ChatRoom {
     if (data.type === "hello") {
       const user = await getUserBySession(this.env, data.token);
       if (!user) { ws.close(4001, "unauthorized"); return; }
+      const had = (this.conns.get(user.id) || 0) > 0;
       this.sockets.set(user.id, ws);
+      this.conns.set(user.id, (this.conns.get(user.id) || 0) + 1);
       ws.send(JSON.stringify({ type: "ready", userId: user.id }));
+      if (!had) await this.broadcastPresence(user.id, true);
     }
   }
 
   async webSocketClose(ws: WebSocket) {
     // Retire uniquement la socket fermée (pas les autres appareils du même utilisateur)
+    let closedUid: string | null = null;
     for (const [uid, s] of this.sockets) {
-      if (s === ws) this.sockets.delete(uid);
+      if (s === ws) { this.sockets.delete(uid); closedUid = uid; }
     }
+    if (closedUid) {
+      const left = (this.conns.get(closedUid) || 1) - 1;
+      if (left <= 0) {
+        this.conns.delete(closedUid);
+        await this.broadcastPresence(closedUid, false);
+      } else {
+        this.conns.set(closedUid, left);
+      }
+    }
+  }
+
+  private async broadcastPresence(userId: string, online: boolean) {
+    try {
+      const rows = await this.env.DB.prepare(
+        `SELECT CASE WHEN user_id = ? THEN friend_id ELSE user_id END AS fid
+           FROM friendships WHERE (user_id = ? OR friend_id = ?) AND status = 'accepted'`
+      ).bind(userId, userId, userId).all();
+      const ids: string[] = (rows.results as any[]).map((r) => r.fid);
+      const globalId = this.env.CHAT_ROOM.idFromName("global");
+      const stub = this.env.CHAT_ROOM.get(globalId);
+      await stub.fetch("https://lightchat/-/push", {
+        method: "POST",
+        body: JSON.stringify({ userIds: ids, payload: { type: "presence", user_id: userId, online } }),
+      }).catch(() => {});
+    } catch {}
   }
 }
 

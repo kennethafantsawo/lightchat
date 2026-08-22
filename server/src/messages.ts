@@ -18,6 +18,9 @@ export async function sendMessage(env: Env, senderId: string, input: {
   const type = (input.type ?? "text") as MessageType;
   if (!MESSAGE_TYPES.includes(type)) return { error: "Type de message invalide." };
   if (type === "text" && !String(input.body ?? "").trim()) return { error: "Message vide." };
+  const convRow = await env.DB.prepare(`SELECT ephemeral_ttl FROM conversations WHERE id = ?`).bind(input.conv_id).first();
+  const ttl = convRow ? Number((convRow as any).ephemeral_ttl) : 0;
+  const expires_at = ttl > 0 ? Date.now() + ttl * 1000 : null;
   const replyToId = input.reply_to_id || null;
   if (replyToId) {
     const target = await getMessage(env, replyToId);
@@ -40,6 +43,7 @@ export async function sendMessage(env: Env, senderId: string, input: {
     pinned: 0,
     status: "sent",
     created_at: Date.now(),
+    expires_at,
   };
   await insertMessage(env, msg);
   await pushToConv(env, msg.conv_id, { type: "message", message: msg });
@@ -88,7 +92,7 @@ async function pushToConv(env: Env, convId: string, payload: unknown) {
 
 export async function myConversations(env: Env, userId: string) {
   const rows = await env.DB.prepare(
-    `SELECT cm.conv_id, c.kind, c.created_at,
+    `SELECT cm.conv_id, c.kind, c.created_at, c.ephemeral_ttl,
             (SELECT m.body FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_body,
             (SELECT m.created_at FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_at,
             (SELECT m.type FROM messages m WHERE m.conv_id = c.id ORDER BY m.created_at DESC LIMIT 1) as last_type,

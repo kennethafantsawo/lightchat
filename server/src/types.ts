@@ -38,6 +38,7 @@ export interface Message {
   pinned: number;
   status: "sent" | "delivered" | "read";
   created_at: number;
+  expires_at: number | null;
 }
 
 export interface MessageReaction {

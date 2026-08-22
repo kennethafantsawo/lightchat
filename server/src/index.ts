@@ -88,6 +88,12 @@ export default {
     const user = await getUserBySession(env, token);
     if (!user) return json({ error: "Non autorisé." }, 401);
 
+    // F1 : heartbeat last_seen (throttle 30 s)
+    const now = Date.now();
+    if (!(user as any).last_seen || now - (user as any).last_seen > 30000) {
+      await env.DB.prepare(`UPDATE users SET last_seen = ? WHERE id = ?`).bind(now, user.id).run();
+    }
+
     if (path === "/api/users/search" && req.method === "GET") {
       const q = url.searchParams.get("q") || "";
       return json({ results: await searchUser(env, user.id, q) });
@@ -349,6 +355,47 @@ export default {
         from: { id: user.id, username: user.username, first_name: user.first_name, last_name: user.last_name },
       });
       return json({ ok: true });
+    }
+
+    if (path === "/api/users/lastseen" && req.method === "GET") {
+      const uid = url.searchParams.get("user_id") || "";
+      const row = await env.DB.prepare(`SELECT last_seen FROM users WHERE id = ?`).bind(uid).first();
+      return json({ last_seen: row ? Number((row as any).last_seen) : 0 });
+    }
+
+    if (path === "/api/avatar" && req.method === "POST") {
+      const ct = req.headers.get("content-type") || "";
+      if (!ct.startsWith("image/")) return json({ error: "Format d'image attendu." }, 400);
+      const buf = await req.arrayBuffer();
+      if (buf.byteLength > 2 * 1024 * 1024) return json({ error: "Image trop lourde (2 Mo max)." }, 400);
+      const key = "avatars/" + user.id;
+      await env.MEDIA.put(key, buf, { httpMetadata: { contentType: ct }, customMetadata: { owner: user.id } });
+      await env.DB.prepare(`UPDATE users SET avatar_url = ? WHERE id = ?`).bind(user.id, user.id).run();
+      return json({ avatar_url: user.id });
+    }
+
+    if (path === "/api/avatar" && req.method === "GET") {
+      const uid = url.searchParams.get("user_id") || user.id;
+      const obj = await env.MEDIA.get("avatars/" + uid);
+      if (!obj) return json({ error: "Avatar introuvable." }, 404);
+      const headers = new Headers();
+      if (obj.httpMetadata?.contentType) headers.set("content-type", obj.httpMetadata.contentType);
+      headers.set("cache-control", "private, max-age=86400");
+      return new Response(obj.body, { headers });
+    }
+
+    if (path === "/api/conversations/ephemeral" && req.method === "POST") {
+      const b = await readJson(req);
+      const convId = String(b?.conv_id ?? "");
+      const can = await canAccessConv(env, convId, user.id);
+      if (!can) return json({ error: "Accès refusé." }, 403);
+      const ttl = Math.max(0, Math.min(604800, Number(b?.ttl ?? 0)));
+      await env.DB.prepare(`UPDATE conversations SET ephemeral_ttl = ? WHERE id = ?`).bind(ttl, convId).run();
+      const ids = await convMemberIds(env, convId);
+      for (const uid of ids) {
+        if (uid !== user.id) await pushToUser(env, uid, { type: "ephemeral", conv_id: convId, ttl });
+      }
+      return json({ ok: true, ttl });
     }
 
     return json({ error: "Not found" }, 404);
