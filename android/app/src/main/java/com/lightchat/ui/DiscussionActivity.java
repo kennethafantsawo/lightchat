@@ -33,6 +33,9 @@ import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.GridLayout;
+import android.widget.GridView;
+import android.widget.HorizontalScrollView;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -113,6 +116,12 @@ public class DiscussionActivity extends Activity {
     private TextView typingBanner;
     private boolean typingShown = false;
     private String draftText = null;
+
+    private GridView gifGrid;
+    private EditText gifQuery;
+    private TextView gifEmpty;
+    private final List<ApiClient.GifResult> gifList = new ArrayList<ApiClient.GifResult>();
+    private GifAdapter gifAdapter;
 
     private String peerId = null;
     private int ephemeralTtl = 0;
@@ -246,6 +255,7 @@ public class DiscussionActivity extends Activity {
             emojiRow.addView(t);
         }
         buildStickerRow();
+        setupStickerPanel();
         refreshMuteButton();
         setupSocial();
     }
@@ -431,77 +441,74 @@ public class DiscussionActivity extends Activity {
     }
 
     private void buildStickerRow() {
-        try {
-            String[] names = getAssets().list("stickers");
-            if (names == null || names.length == 0) {
-                findViewById(R.id.btn_sticker).setVisibility(View.GONE);
-                return;
-            }
-            LinearLayout row = findViewById(R.id.sticker_container);
-            int thumb = dp(64);
-            for (int i = 0; i < names.length; i++) {
-                final String name = names[i];
-                Bitmap bmp = decodeStickerThumb(name);
-                if (bmp == null) continue;
-                ImageView iv = new ImageView(this);
-                iv.setImageBitmap(bmp);
-                iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                iv.setPadding(dp(4), dp(4), dp(4), dp(4));
-                iv.setLayoutParams(new LinearLayout.LayoutParams(thumb, thumb));
-                iv.setContentDescription(name);
-                iv.setOnClickListener(new View.OnClickListener() {
-                    @Override public void onClick(View v) { sendSticker(name); }
+        final GridLayout grid = findViewById(R.id.sticker_emoji_grid);
+        String[] emojis = getResources().getStringArray(R.array.emoji_list);
+        for (final String e : emojis) {
+            TextView t = new TextView(this);
+            t.setText(e);
+            t.setTextSize(24);
+            t.setGravity(Gravity.CENTER);
+            t.setPadding(dp(6), dp(6), dp(6), dp(6));
+            t.setTextColor(Skin.palette().onSurface);
+            GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+            lp.width = 0;
+            lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            t.setLayoutParams(lp);
+            t.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { sendEmoji(e); }
+            });
+            grid.addView(t);
+        }
+        loadServerStickers();
+    }
+
+    private void loadServerStickers() {
+        final String token = session.token();
+        Async.exec(this, new Async.Worker<List<ApiClient.StickerPack>>() {
+            @Override public List<ApiClient.StickerPack> run() throws Exception {
+                final List<ApiClient.StickerPack>[] out = new List[1];
+                ApiClient.getStickers(token, new ApiClient.StickersCallback() {
+                    @Override public void on(List<ApiClient.StickerPack> packs, Exception err) {
+                        out[0] = err == null ? packs : new ArrayList<ApiClient.StickerPack>();
+                    }
                 });
-                row.addView(iv);
+                return out[0] == null ? new ArrayList<ApiClient.StickerPack>() : out[0];
             }
-        } catch (IOException e) {
-            findViewById(R.id.btn_sticker).setVisibility(View.GONE);
-        }
+        }, new Async.UI<List<ApiClient.StickerPack>>() {
+            @Override public void on(List<ApiClient.StickerPack> packs, Exception err) {
+                if (packs == null || packs.isEmpty()) return;
+                final HorizontalScrollView sv = findViewById(R.id.sticker_packs);
+                final LinearLayout container = findViewById(R.id.sticker_packs_container);
+                boolean any = false;
+                for (final ApiClient.StickerPack pack : packs) {
+                    if (pack.items == null) continue;
+                    for (final ApiClient.StickerItem item : pack.items) {
+                        if (item.imageUrl == null || item.imageUrl.isEmpty()) continue;
+                        any = true;
+                        ImageView iv = new ImageView(DiscussionActivity.this);
+                        iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                        iv.setPadding(dp(4), dp(4), dp(4), dp(4));
+                        iv.setLayoutParams(new LinearLayout.LayoutParams(dp(56), dp(56)));
+                        iv.setContentDescription(item.emoji != null ? item.emoji : item.id);
+                        iv.setOnClickListener(new View.OnClickListener() {
+                            @Override public void onClick(View v) { sendStickerUrl(item.imageUrl); }
+                        });
+                        container.addView(iv);
+                        loadAbsImage(iv, item.imageUrl);
+                    }
+                }
+                if (any) sv.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
-    private Bitmap decodeStickerThumb(String name) {
-        try {
-            java.io.InputStream in = getAssets().open("stickers/" + name);
-            BitmapFactory.Options bounds = new BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-            BitmapFactory.decodeStream(in, null, bounds);
-            in.close();
-            int sample = 1;
-            while (Math.max(bounds.outWidth, bounds.outHeight) / sample > 160) sample *= 2;
-            BitmapFactory.Options o = new BitmapFactory.Options();
-            o.inSampleSize = sample;
-            in = getAssets().open("stickers/" + name);
-            try {
-                return BitmapFactory.decodeStream(in, null, o);
-            } finally {
-                in.close();
-            }
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
-    private void sendSticker(final String name) {
+    private void sendStickerUrl(final String imageUrl) {
         final String token = session.token();
         Async.exec(this, new Async.Worker<Boolean>() {
             @Override public Boolean run() {
                 try {
-                    java.io.InputStream in = getAssets().open("stickers/" + name);
-                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                    byte[] buf = new byte[16384];
-                    int n;
-                    try {
-                        while ((n = in.read(buf)) != -1) bos.write(buf, 0, n);
-                    } finally {
-                        in.close();
-                    }
-                    ApiClient.ApiResponse up = ApiClient.upload("/api/upload?filename=" + name, bos.toByteArray(), "image/png", token);
-                    if (up.status != 200) return false;
-                    Map<String, Object> u = Json.parseObject(up.body);
-                    String key = (String) u.get("key");
-                    if (key == null || key.isEmpty()) return false;
-                    String json = "{\"conv_id\":\"" + esc(convId) + "\",\"type\":\"sticker\",\"media_key\":\""
-                            + esc(key) + "\",\"mime\":\"image/png\"}";
+                    String json = "{\"conv_id\":\"" + esc(convId) + "\",\"type\":\"sticker\",\"body\":\""
+                            + esc(imageUrl) + "\"}";
                     ApiClient.ApiResponse s = ApiClient.call("POST", "/api/send", json, token);
                     return s.status == 200;
                 } catch (Exception e) {
@@ -522,6 +529,70 @@ public class DiscussionActivity extends Activity {
         });
     }
 
+    private void sendEmoji(final String emoji) {
+        final String token = session.token();
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() {
+                try {
+                    String json = "{\"conv_id\":\"" + esc(convId) + "\",\"type\":\"emoji\",\"body\":\""
+                            + esc(emoji) + "\"}";
+                    ApiClient.ApiResponse s = ApiClient.call("POST", "/api/send", json, token);
+                    return s.status == 200;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                if (ok != null && ok) {
+                    status.setVisibility(View.GONE);
+                    handler.post(pollLoop);
+                } else {
+                    status.setVisibility(View.VISIBLE);
+                    status.setText(R.string.sticker_send_err);
+                }
+            }
+        });
+    }
+
+    private void loadAbsImage(final ImageView iv, final String url) {
+        if (url == null || url.isEmpty()) return;
+        Async.exec(DiscussionActivity.this, new Async.Worker<Bitmap>() {
+            @Override public Bitmap run() throws Exception {
+                byte[] b = downloadBytes(url);
+                if (b == null) return null;
+                return BitmapFactory.decodeByteArray(b, 0, b.length);
+            }
+        }, new Async.UI<Bitmap>() {
+            @Override public void on(Bitmap bmp, Exception e) {
+                if (bmp != null && !bmp.isRecycled()) iv.setImageBitmap(bmp);
+            }
+        });
+    }
+
+    private byte[] downloadBytes(String urlStr) {
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL(urlStr).openConnection();
+            conn.setConnectTimeout(15_000);
+            conn.setReadTimeout(15_000);
+            conn.setRequestMethod("GET");
+            conn.setInstanceFollowRedirects(true);
+            if (conn.getResponseCode() != 200) return null;
+            try (InputStream is = conn.getInputStream()) {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = is.read(buf)) != -1) bos.write(buf, 0, n);
+                return bos.toByteArray();
+            }
+        } catch (Exception e) {
+            return null;
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -536,6 +607,128 @@ public class DiscussionActivity extends Activity {
         alive = false;
         Realtime.get().removeListener(rt);
         handler.removeCallbacks(pollLoop);
+    }
+
+    private void setupStickerPanel() {
+        final TextView tabStickers = findViewById(R.id.tab_stickers);
+        final TextView tabGif = findViewById(R.id.tab_gif);
+        final View stickerTab = findViewById(R.id.sticker_tab);
+        final View gifTab = findViewById(R.id.gif_tab);
+        tabStickers.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                stickerTab.setVisibility(View.VISIBLE);
+                gifTab.setVisibility(View.GONE);
+            }
+        });
+        tabGif.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                stickerTab.setVisibility(View.GONE);
+                gifTab.setVisibility(View.VISIBLE);
+            }
+        });
+
+        gifGrid = findViewById(R.id.gif_grid);
+        gifQuery = findViewById(R.id.gif_query);
+        gifEmpty = findViewById(R.id.gif_empty);
+        gifAdapter = new GifAdapter();
+        gifGrid.setAdapter(gifAdapter);
+        gifGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                if (position < 0 || position >= gifList.size()) return;
+                sendGif(gifList.get(position).url);
+            }
+        });
+        findViewById(R.id.gif_search).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                String q = gifQuery.getText().toString().trim();
+                if (!q.isEmpty()) searchGifs(q);
+            }
+        });
+    }
+
+    private void searchGifs(final String q) {
+        final String token = session.token();
+        gifEmpty.setVisibility(View.GONE);
+        gifGrid.setVisibility(View.GONE);
+        Async.exec(this, new Async.Worker<List<ApiClient.GifResult>>() {
+            @Override public List<ApiClient.GifResult> run() throws Exception {
+                final List<ApiClient.GifResult>[] out = new List[1];
+                ApiClient.searchGif(token, q, 24, new ApiClient.GifCallback() {
+                    @Override public void on(List<ApiClient.GifResult> gifs, Exception err) {
+                        out[0] = err == null ? gifs : new ArrayList<ApiClient.GifResult>();
+                    }
+                });
+                return out[0] == null ? new ArrayList<ApiClient.GifResult>() : out[0];
+            }
+        }, new Async.UI<List<ApiClient.GifResult>>() {
+            @Override public void on(List<ApiClient.GifResult> gifs, Exception err) {
+                gifList.clear();
+                if (gifs != null) gifList.addAll(gifs);
+                gifAdapter.notifyDataSetChanged();
+                if (gifList.isEmpty()) {
+                    gifEmpty.setVisibility(View.VISIBLE);
+                    gifGrid.setVisibility(View.GONE);
+                } else {
+                    gifEmpty.setVisibility(View.GONE);
+                    gifGrid.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+    }
+
+    private void sendGif(final String url) {
+        final String token = session.token();
+        Toast.makeText(this, R.string.gif_sending, Toast.LENGTH_SHORT).show();
+        Async.exec(this, new Async.Worker<Boolean>() {
+            @Override public Boolean run() {
+                try {
+                    byte[] data = downloadBytes(url);
+                    if (data == null || data.length == 0) return false;
+                    String fname = "gif_" + System.currentTimeMillis() + ".gif";
+                    ApiClient.ApiResponse up = ApiClient.upload("/api/upload?filename=" + fname, data, "image/gif", token);
+                    if (up.status != 200) return false;
+                    Map<String, Object> u = Json.parseObject(up.body);
+                    String key = (String) u.get("key");
+                    if (key == null || key.isEmpty()) return false;
+                    String json = "{\"conv_id\":\"" + esc(convId) + "\",\"type\":\"photo\",\"media_key\":\""
+                            + esc(key) + "\",\"mime\":\"image/gif\"}";
+                    ApiClient.ApiResponse s = ApiClient.call("POST", "/api/send", json, token);
+                    return s.status == 200;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        }, new Async.UI<Boolean>() {
+            @Override public void on(Boolean ok, Exception err) {
+                if (ok != null && ok) {
+                    status.setVisibility(View.GONE);
+                    handler.post(pollLoop);
+                } else {
+                    status.setVisibility(View.VISIBLE);
+                    status.setText(R.string.gif_send_err);
+                }
+            }
+        });
+    }
+
+    private final class GifAdapter extends BaseAdapter {
+        @Override public int getCount() { return gifList.size(); }
+        @Override public Object getItem(int p) { return gifList.get(p); }
+        @Override public long getItemId(int p) { return p; }
+        @Override public View getView(int position, View convertView, ViewGroup parent) {
+            ImageView iv;
+            if (convertView instanceof ImageView) {
+                iv = (ImageView) convertView;
+            } else {
+                iv = new ImageView(DiscussionActivity.this);
+                iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                iv.setLayoutParams(new AbsListView.LayoutParams(AbsListView.LayoutParams.MATCH_PARENT, dp(90)));
+            }
+            iv.setImageDrawable(null);
+            ApiClient.GifResult g = gifList.get(position);
+            loadAbsImage(iv, g.preview != null && !g.preview.isEmpty() ? g.preview : g.url);
+            return iv;
+        }
     }
 
     @Override

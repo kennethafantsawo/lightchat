@@ -381,6 +381,124 @@ public final class ApiClient {
         return out;
     }
 
+    public static final class StickerItem {
+        public final String id;
+        public final String packId;
+        public final String emoji;
+        public final String imageUrl;
+        StickerItem(String id, String packId, String emoji, String imageUrl) {
+            this.id = id;
+            this.packId = packId;
+            this.emoji = emoji;
+            this.imageUrl = imageUrl;
+        }
+    }
+
+    public static final class StickerPack {
+        public final String id;
+        public final String name;
+        public final String coverUrl;
+        public final List<StickerItem> items;
+        StickerPack(String id, String name, String coverUrl, List<StickerItem> items) {
+            this.id = id;
+            this.name = name;
+            this.coverUrl = coverUrl;
+            this.items = items;
+        }
+    }
+
+    public interface StickersCallback {
+        void on(List<StickerPack> packs, Exception err);
+    }
+
+    public static void getStickers(String token, StickersCallback cb) {
+        try {
+            ApiResponse r = call("GET", "/api/stickers", null, token);
+            List<StickerPack> out = new ArrayList<StickerPack>();
+            if (r.status == 200 && r.body != null && !r.body.isEmpty()) {
+                Map<String, Object> o = Json.parseObject(r.body);
+                Object packs = o.get("packs");
+                if (packs instanceof List) {
+                    for (Object x : (List<Object>) packs) {
+                        if (!(x instanceof Map)) continue;
+                        @SuppressWarnings("unchecked") Map<String, Object> p = (Map<String, Object>) x;
+                        String pid = str(p, "id");
+                        String pname = str(p, "name");
+                        String pcover = str(p, "cover_url");
+                        List<StickerItem> items = new ArrayList<StickerItem>();
+                        Object its = p.get("items");
+                        if (its instanceof List) {
+                            for (Object y : (List<Object>) its) {
+                                if (!(y instanceof Map)) continue;
+                                @SuppressWarnings("unchecked") Map<String, Object> it = (Map<String, Object>) y;
+                                items.add(new StickerItem(str(it, "id"), str(it, "pack_id"),
+                                        str(it, "emoji"), str(it, "image_url")));
+                            }
+                        }
+                        out.add(new StickerPack(pid, pname, pcover, items));
+                    }
+                }
+            }
+            cb.on(out, null);
+        } catch (Exception e) {
+            cb.on(new ArrayList<StickerPack>(), e);
+        }
+    }
+
+    public static final class GifResult {
+        public final String id;
+        public final String title;
+        public final String url;
+        public final String preview;
+        public final int width;
+        public final int height;
+        GifResult(String id, String title, String url, String preview, int width, int height) {
+            this.id = id;
+            this.title = title;
+            this.url = url;
+            this.preview = preview;
+            this.width = width;
+            this.height = height;
+        }
+    }
+
+    public interface GifCallback {
+        void on(List<GifResult> gifs, Exception err);
+    }
+
+    public static void searchGif(String token, String q, int limit, GifCallback cb) {
+        try {
+            String json = "{\"q\":\"" + esc(q) + "\",\"limit\":" + limit + "}";
+            ApiResponse r = call("POST", "/api/gif/search", json, token);
+            List<GifResult> out = new ArrayList<GifResult>();
+            if (r.status == 200 && r.body != null && !r.body.isEmpty()) {
+                Map<String, Object> o = Json.parseObject(r.body);
+                Object gifs = o.get("gifs");
+                if (gifs instanceof List) {
+                    for (Object x : (List<Object>) gifs) {
+                        if (!(x instanceof Map)) continue;
+                        @SuppressWarnings("unchecked") Map<String, Object> m = (Map<String, Object>) x;
+                        out.add(new GifResult(str(m, "id"), str(m, "title"), str(m, "url"),
+                                str(m, "preview"), num(m, "width"), num(m, "height")));
+                    }
+                }
+            }
+            cb.on(out, null);
+        } catch (Exception e) {
+            cb.on(new ArrayList<GifResult>(), e);
+        }
+    }
+
+    private static String str(Map<String, Object> m, String key) {
+        Object v = m.get(key);
+        return v == null ? "" : String.valueOf(v);
+    }
+
+    private static int num(Map<String, Object> m, String key) {
+        Object v = m.get(key);
+        return v instanceof Number ? ((Number) v).intValue() : 0;
+    }
+
     private static String esc(String s) {
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
