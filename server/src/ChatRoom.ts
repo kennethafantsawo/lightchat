@@ -34,7 +34,7 @@ export class ChatRoom {
     }
     if (url.pathname === "/online" || url.pathname === "/-/online") {
       let ids: string[] = [];
-      try { ids = (await req.json())?.userIds ?? []; } catch {}
+      try { ids = ((await req.json()) as any)?.userIds ?? []; } catch {}
       const online: string[] = [];
       for (const id of ids) if (this.conns.has(id)) online.push(id);
       return new Response(JSON.stringify({ online }), {
