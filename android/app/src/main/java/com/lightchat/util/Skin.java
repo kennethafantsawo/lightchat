@@ -107,8 +107,8 @@ public final class Skin {
 
     private static ThemeId currentTheme = ThemeId.INDIGO;
     private static Palette palette;
-    private static GradientDrawable ambientBg;
-    private static final Map<String, GradientDrawable> pool = new HashMap<String, GradientDrawable>();
+    private static android.graphics.drawable.Drawable ambientBg;
+    private static final Map<String, android.graphics.drawable.Drawable> pool = new HashMap<String, android.graphics.drawable.Drawable>();
     private static boolean loaded = false;
 
     private Skin() {}
@@ -180,26 +180,47 @@ public final class Skin {
 
     // ---------- Ambiance ----------
 
-    /** Dégradé vertical d'ambiance (aurora / obsidienne) pour la fenêtre. */
-    public static synchronized GradientDrawable ambient() {
+    /** Dégradé d'ambiance « liquide » animé pour la fenêtre (aura / aurora). */
+    public static synchronized android.graphics.drawable.Drawable ambient() {
         if (ambientBg != null) return ambientBg;
-        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{palette.ambientTop, palette.ambientMid, palette.ambientBottom});
-        ambientBg = g;
-        return g;
+        int[] blobs = new int[]{palette.ambientTop, palette.ambientMid, palette.ambientBottom, palette.secondary};
+        ambientBg = new AmbientWallpaper(palette.ambientTop, palette.ambientMid, palette.ambientBottom, blobs);
+        return ambientBg;
     }
 
     // ---------- Formes en cache ----------
 
     private static synchronized GradientDrawable get(String key, GradientDrawable.Orientation orientation,
                                                      int[] colors, float[] radii, int strokeW, int strokeColor) {
-        GradientDrawable g = pool.get(key);
+        GradientDrawable g = (GradientDrawable) pool.get(key);
         if (g != null) return g;
         g = new GradientDrawable(orientation, colors);
         if (radii != null) g.setCornerRadii(radii);
         if (strokeW > 0) g.setStroke(strokeW, strokeColor);
         pool.put(key, g);
         return g;
+    }
+
+    /** Construit une forme verre « liquide » : couche de base translucide +
+     *  reflet glossy en haut + liseré réfractif fin. */
+    private static synchronized android.graphics.drawable.Drawable glass(String key,
+            GradientDrawable.Orientation orientation, int[] colors, float[] radii,
+            int strokeW, int strokeColor) {
+        android.graphics.drawable.Drawable d = pool.get(key);
+        if (d != null) return d;
+        GradientDrawable base = new GradientDrawable(orientation, colors);
+        if (radii != null) base.setCornerRadii(radii);
+        if (strokeW > 0) base.setStroke(strokeW, strokeColor);
+
+        GradientDrawable sheen = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{argb(54, 0xffffff), argb(10, 0xffffff), argb(0, 0xffffff)});
+        if (radii != null) sheen.setCornerRadii(radii);
+
+        android.graphics.drawable.LayerDrawable layered = new android.graphics.drawable.LayerDrawable(
+                new android.graphics.drawable.Drawable[]{base, sheen});
+        layered.setLayerInset(1, (int) dp(1.5f), (int) dp(1.5f), (int) dp(1.5f), (int) dp(8f));
+        pool.put(key, layered);
+        return layered;
     }
 
     private static float[] corners(float r, float r2, float r3, float r4) {
@@ -211,27 +232,27 @@ public final class Skin {
     }
 
     /** Barre « verre » (translucide, arêtes arrondies en bas pour l'en-tête). */
-    public static GradientDrawable glassHeader(float radiusBottom) {
-        return get("hdr:" + radiusBottom, GradientDrawable.Orientation.TOP_BOTTOM,
+    public static android.graphics.drawable.Drawable glassHeader(float radiusBottom) {
+        return glass("hdr:" + radiusBottom, GradientDrawable.Orientation.TOP_BOTTOM,
                 new int[]{palette.glassFillStrong, palette.glassFill},
                 corners(0, 0, radiusBottom, radiusBottom), 1, palette.glassStroke);
     }
 
     /** Barre du bas / conteneurs : pilule verre flottante. */
-    public static GradientDrawable glassPill(float radius) {
-        return get("gp:" + radius, GradientDrawable.Orientation.TL_BR,
+    public static android.graphics.drawable.Drawable glassPill(float radius) {
+        return glass("gp:" + radius, GradientDrawable.Orientation.TL_BR,
                 new int[]{palette.glassFillStrong, palette.glassFill}, pillPx(radius), 1, palette.glassStroke);
     }
 
     /** Carte verre (panneaux, sélecteur de thème). */
-    public static GradientDrawable glassCard(float radius) {
-        return get("gc:" + radius, GradientDrawable.Orientation.TL_BR,
+    public static android.graphics.drawable.Drawable glassCard(float radius) {
+        return glass("gc:" + radius, GradientDrawable.Orientation.TL_BR,
                 new int[]{palette.glassFillStrong, palette.glassFill}, pillPx(radius), 1, palette.glassStroke);
     }
 
     /** Champ de saisie : pilule très translucide. */
-    public static GradientDrawable pill_input(float radius) {
-        return get("pi:" + radius, GradientDrawable.Orientation.TL_BR,
+    public static android.graphics.drawable.Drawable pill_input(float radius) {
+        return glass("pi:" + radius, GradientDrawable.Orientation.TL_BR,
                 new int[]{palette.inputFill, palette.inputFill}, pillPx(radius), 1, palette.glassStroke);
     }
 
@@ -250,7 +271,7 @@ public final class Skin {
     /** Bulle de message. mine=true → bord tranchant en bas à droite ; inverse en bas à gauche. */
     public static GradientDrawable bubble(boolean mine) {
         String key = mine ? "bm" : "bo";
-        GradientDrawable g = pool.get(key);
+        GradientDrawable g = (GradientDrawable) pool.get(key);
         if (g != null) return g;
         float r = dp(20);
         float c = dp(6);
@@ -269,7 +290,7 @@ public final class Skin {
     /** Coin photo/vidéo (léger). */
     public static GradientDrawable mediaRounded(int fill) {
         String key = "mr:" + Integer.toHexString(fill);
-        GradientDrawable g = pool.get(key);
+        GradientDrawable g = (GradientDrawable) pool.get(key);
         if (g != null) return g;
         g = new GradientDrawable();
         g.setCornerRadius(dp(18));
@@ -281,7 +302,7 @@ public final class Skin {
     /** Pastille avatar circulaire. */
     public static GradientDrawable circle(int fill) {
         String key = "av:" + Integer.toHexString(fill);
-        GradientDrawable g = pool.get(key);
+        GradientDrawable g = (GradientDrawable) pool.get(key);
         if (g != null) return g;
         g = new GradientDrawable();
         g.setShape(GradientDrawable.OVAL);

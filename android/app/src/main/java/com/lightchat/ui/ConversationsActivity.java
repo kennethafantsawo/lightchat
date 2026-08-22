@@ -576,6 +576,13 @@ public class ConversationsActivity extends Activity {
         return "[" + c.lastType + "]";
     }
 
+    private boolean isMuted(String convId) {
+        if (convId == null) return false;
+        SharedPreferences sp = getSharedPreferences("lc_prefs", MODE_PRIVATE);
+        Set<String> muted = sp.getStringSet("muted_convs", null);
+        return muted != null && muted.contains(convId);
+    }
+
     private class ConversationAdapter extends BaseAdapter {
         @Override public int getCount() { return items.size(); }
         @Override public Conversation getItem(int i) { return items.get(i); }
@@ -590,13 +597,19 @@ public class ConversationsActivity extends Activity {
             TextView name = convertView.findViewById(R.id.row_name);
             TextView preview = convertView.findViewById(R.id.row_preview);
             TextView time = convertView.findViewById(R.id.row_time);
+            TextView mute = convertView.findViewById(R.id.row_mute);
             String title = titleFor(c);
             name.setText(title);
             name.setTextColor(Skin.palette().onSurface);
-            preview.setText(previewFor(c));
-            preview.setTextColor(Skin.palette().onSurfaceVariant);
+            String pv = (c.pinnedBody != null && !c.pinnedBody.isEmpty())
+                    ? "📌 " + c.pinnedBody : previewFor(c);
+            preview.setText(pv);
+            preview.setTextColor(c.pinnedBody != null && !c.pinnedBody.isEmpty()
+                    ? Skin.palette().onSurface : Skin.palette().onSurfaceVariant);
             time.setText(Fmt.listTime(c.lastAt));
             time.setTextColor(Skin.palette().onSurfaceVariant);
+            boolean muted = isMuted(c.convId);
+            mute.setVisibility(muted ? View.VISIBLE : View.GONE);
             avatar.setText(title.isEmpty() ? "?" : title.substring(0, 1).toUpperCase());
             avatar.setTextColor(Skin.palette().onPrimary);
             avatar.setBackground(Skin.circle(avatarColorFor(c)));

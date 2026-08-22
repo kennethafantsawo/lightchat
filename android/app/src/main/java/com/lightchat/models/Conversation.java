@@ -9,24 +9,28 @@ public final class Conversation {
     public final String lastBody;
     public final long lastAt;
     public final String lastType;
+    public final String pinnedBody;
 
-    public Conversation(String convId, String kind, long createdAt, String lastBody, long lastAt, String lastType) {
+    public Conversation(String convId, String kind, long createdAt, String lastBody, long lastAt, String lastType, String pinnedBody) {
         this.convId = convId;
         this.kind = kind;
         this.createdAt = createdAt;
         this.lastBody = lastBody;
         this.lastAt = lastAt;
         this.lastType = lastType;
+        this.pinnedBody = pinnedBody;
     }
 
     public static Conversation fromJson(Map<String, Object> m) {
+        Object pin = m.get("pinned_body");
         return new Conversation(
             (String) m.get("conv_id"),
             (String) m.get("kind"),
             toLong(m.get("created_at")),
             (String) m.get("last_body"),
             toLong(m.get("last_at")),
-            (String) m.get("last_type")
+            (String) m.get("last_type"),
+            pin == null ? null : String.valueOf(pin)
         );
     }
 
