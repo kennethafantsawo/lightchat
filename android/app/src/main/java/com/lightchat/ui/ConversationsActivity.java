@@ -11,6 +11,7 @@ import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -88,10 +89,58 @@ public class ConversationsActivity extends Activity {
     private Map<String, String> pendingColors;
     private Set<String> pendingIds;
 
+    private final Map<String, Long> typingUntil = new HashMap<String, Long>();
+    private final Handler listHandler = new Handler();
+
     private final Realtime.Listener rt = new Realtime.Listener() {
-        @Override public void onMessage(String json) { reload(); }
+        @Override public void onMessage(String json) { handleRealtime(json); }
         @Override public void onState(boolean open) { }
     };
+
+    private void handleRealtime(String json) {
+        try {
+            Map<String, Object> m = Json.parseObject(json);
+            String type = (String) m.get("type");
+            String convId = (String) m.get("conv_id");
+            if ("typing".equals(type) && convId != null) {
+                String who = (String) m.get("user_id");
+                if (who != null && !who.equals(session.userId())) {
+                    typingUntil.put(convId, System.currentTimeMillis() + 4000L);
+                    scheduleTypingClear(convId);
+                    runOnUiThread(new Runnable() {
+                        @Override public void run() { adapter.notifyDataSetChanged(); }
+                    });
+                }
+                return;
+            }
+            if ("message".equals(type)) {
+                Object mo = m.get("message");
+                if (mo instanceof Map) {
+                    Object cid = ((Map<String, Object>) mo).get("conv_id");
+                    if (cid != null) typingUntil.remove(String.valueOf(cid));
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        reload();
+    }
+
+    private void scheduleTypingClear(final String convId) {
+        listHandler.postDelayed(new Runnable() {
+            @Override public void run() {
+                Long until = typingUntil.get(convId);
+                if (until != null && until <= System.currentTimeMillis()) {
+                    typingUntil.remove(convId);
+                    adapter.notifyDataSetChanged();
+                }
+            }
+        }, 4200L);
+    }
+
+    private boolean isTyping(String convId) {
+        Long until = typingUntil.get(convId);
+        return until != null && until > System.currentTimeMillis();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -604,12 +653,20 @@ public class ConversationsActivity extends Activity {
             name.setText(title);
             name.setTextColor(Skin.palette().onSurface);
             name.setTypeface(name.getTypeface(), hasUnread ? Typeface.BOLD : Typeface.NORMAL);
-            String pv = (c.pinnedBody != null && !c.pinnedBody.isEmpty())
-                    ? "📌 " + c.pinnedBody : previewFor(c);
+            String pv;
+            boolean typing = isTyping(c.convId);
+            if (typing) {
+                pv = "✏️ " + getString(R.string.typing_now);
+                preview.setTextColor(Skin.palette().primary);
+                preview.setTypeface(preview.getTypeface(), Typeface.BOLD);
+            } else {
+                pv = (c.pinnedBody != null && !c.pinnedBody.isEmpty())
+                        ? "📌 " + c.pinnedBody : previewFor(c);
+                preview.setTextColor(c.pinnedBody != null && !c.pinnedBody.isEmpty()
+                        ? Skin.palette().onSurface : Skin.palette().onSurfaceVariant);
+                preview.setTypeface(preview.getTypeface(), hasUnread ? Typeface.BOLD : Typeface.NORMAL);
+            }
             preview.setText(pv);
-            preview.setTextColor(c.pinnedBody != null && !c.pinnedBody.isEmpty()
-                    ? Skin.palette().onSurface : Skin.palette().onSurfaceVariant);
-            preview.setTypeface(preview.getTypeface(), hasUnread ? Typeface.BOLD : Typeface.NORMAL);
             time.setText(Fmt.listTime(c.lastAt));
             time.setTextColor(hasUnread ? Skin.palette().primary : Skin.palette().onSurfaceVariant);
             boolean muted = isMuted(c.convId);

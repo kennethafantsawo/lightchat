@@ -76,6 +76,7 @@
     <string name="disc_cancel">✕</string>
     <string name="bell_on">🔔</string>
     <string name="bell_off">🔕</string>
+    <string name="typing_now">en train d\'écrire…</string>
     <string name="mute_status">Notifications désactivées pour cette conversation.</string>
     <string name="unmute_status">Notifications réactivées.</string>
 
