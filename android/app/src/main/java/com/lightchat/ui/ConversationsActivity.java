@@ -598,18 +598,29 @@ public class ConversationsActivity extends Activity {
             TextView preview = convertView.findViewById(R.id.row_preview);
             TextView time = convertView.findViewById(R.id.row_time);
             TextView mute = convertView.findViewById(R.id.row_mute);
+            TextView unread = convertView.findViewById(R.id.row_unread);
             String title = titleFor(c);
+            boolean hasUnread = c.unread > 0;
             name.setText(title);
             name.setTextColor(Skin.palette().onSurface);
+            name.setTypeface(name.getTypeface(), hasUnread ? Typeface.BOLD : Typeface.NORMAL);
             String pv = (c.pinnedBody != null && !c.pinnedBody.isEmpty())
                     ? "📌 " + c.pinnedBody : previewFor(c);
             preview.setText(pv);
             preview.setTextColor(c.pinnedBody != null && !c.pinnedBody.isEmpty()
                     ? Skin.palette().onSurface : Skin.palette().onSurfaceVariant);
+            preview.setTypeface(preview.getTypeface(), hasUnread ? Typeface.BOLD : Typeface.NORMAL);
             time.setText(Fmt.listTime(c.lastAt));
-            time.setTextColor(Skin.palette().onSurfaceVariant);
+            time.setTextColor(hasUnread ? Skin.palette().primary : Skin.palette().onSurfaceVariant);
             boolean muted = isMuted(c.convId);
             mute.setVisibility(muted ? View.VISIBLE : View.GONE);
+            if (hasUnread) {
+                unread.setText(c.unread > 99 ? "99+" : String.valueOf(c.unread));
+                unread.setBackground(Skin.circle(Skin.palette().primary));
+                unread.setVisibility(View.VISIBLE);
+            } else {
+                unread.setVisibility(View.GONE);
+            }
             avatar.setText(title.isEmpty() ? "?" : title.substring(0, 1).toUpperCase());
             avatar.setTextColor(Skin.palette().onPrimary);
             avatar.setBackground(Skin.circle(avatarColorFor(c)));

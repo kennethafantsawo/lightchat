@@ -10,8 +10,9 @@ public final class Conversation {
     public final long lastAt;
     public final String lastType;
     public final String pinnedBody;
+    public final int unread;
 
-    public Conversation(String convId, String kind, long createdAt, String lastBody, long lastAt, String lastType, String pinnedBody) {
+    public Conversation(String convId, String kind, long createdAt, String lastBody, long lastAt, String lastType, String pinnedBody, int unread) {
         this.convId = convId;
         this.kind = kind;
         this.createdAt = createdAt;
@@ -19,6 +20,7 @@ public final class Conversation {
         this.lastAt = lastAt;
         this.lastType = lastType;
         this.pinnedBody = pinnedBody;
+        this.unread = unread;
     }
 
     public static Conversation fromJson(Map<String, Object> m) {
@@ -30,7 +32,8 @@ public final class Conversation {
             (String) m.get("last_body"),
             toLong(m.get("last_at")),
             (String) m.get("last_type"),
-            pin == null ? null : String.valueOf(pin)
+            pin == null ? null : String.valueOf(pin),
+            (int) toLong(m.get("unread"))
         );
     }
 
