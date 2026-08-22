@@ -77,8 +77,6 @@
     <string name="msg_pin">Épingler</string>
     <string name="msg_unpin">Désépingler</string>
     <string name="pinned_message">📌 %1$s</string>
-    <string name="search_disc_hint">Rechercher dans la discussion…</string>
-    <string name="search_disc_empty">Aucun résultat.</string>
     <string name="disc_search">🔍</string>
     <string name="disc_cancel">✕</string>
     <string name="bell_on">🔔</string>

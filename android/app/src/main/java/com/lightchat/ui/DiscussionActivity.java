@@ -90,7 +90,6 @@ public class DiscussionActivity extends Activity {
     private static final int MODE_NONE = 0;
     private static final int MODE_REPLY = 1;
     private static final int MODE_EDIT = 2;
-    private static final int MODE_SEARCH = 3;
 
     private SessionStore session;
     private String convId;
@@ -110,7 +109,6 @@ public class DiscussionActivity extends Activity {
     private int barMode = MODE_NONE;
     private Message replyMsg;
     private Message editMsg;
-    private String searchQuery;
 
     private View pinnedBanner;
     private TextView pinnedText;
@@ -1058,13 +1056,8 @@ public class DiscussionActivity extends Activity {
         barMode = MODE_NONE;
         replyMsg = null;
         editMsg = null;
-        searchQuery = null;
         editBar.setVisibility(View.GONE);
-        if (barHadSearch) refresh();
-        barHadSearch = false;
     }
-
-    private boolean barHadSearch = false;
 
     private void confirmDelete(final Message m) {
         new AlertDialog.Builder(this)
@@ -1294,25 +1287,6 @@ public class DiscussionActivity extends Activity {
             t2.setText(fmtTime(r.createdAt));
             return cv;
         }
-    }
-
-    private void applySearch(String qtext) {
-        if (qtext.isEmpty()) {
-            if (barMode == MODE_SEARCH) {
-                cancelBar();
-                return;
-            }
-            return;
-        }
-        barHadSearch = barMode == MODE_SEARCH;
-        barMode = MODE_SEARCH;
-        replyMsg = null;
-        editMsg = null;
-        searchQuery = qtext.toLowerCase(Locale.ROOT);
-        editBar.setVisibility(View.VISIBLE);
-        editLabel.setText(getString(R.string.disc_search) + "  " + qtext);
-        refresh();
-        if (adapter.getCount() == 0) showStatus(getString(R.string.search_disc_empty));
     }
 
     // ---------- Media ----------
@@ -1832,20 +1806,9 @@ public class DiscussionActivity extends Activity {
             }
         });
         List<Message> shown = all;
-        if (barMode == MODE_SEARCH && searchQuery != null && !searchQuery.isEmpty()) {
-            shown = new ArrayList<Message>();
-            for (Message cur : all) {
-                if (matchesSearch(cur)) shown.add(cur);
-            }
-        }
         adapter.setList(shown);
         adapter.notifyDataSetChanged();
         if (atBottom && shown.size() > 0) list.smoothScrollToPosition(shown.size() - 1);
-    }
-
-    private boolean matchesSearch(Message m) {
-        String d = display(m).toLowerCase(Locale.ROOT);
-        return d.contains(searchQuery);
     }
 
     private void showStatus(String s) {
