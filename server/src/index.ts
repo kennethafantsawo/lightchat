@@ -542,6 +542,142 @@ export default {
       }
     }
 
+    if (path === "/api/export" && req.method === "GET") {
+      const row = (await env.DB.prepare(`SELECT * FROM users WHERE id = ?`).bind(user.id).first()) as unknown as User | null;
+      let privacy: any = {};
+      try { privacy = JSON.parse((row as any)?.privacy_settings || "{}"); } catch {}
+      const blocks = (await env.DB.prepare(`SELECT blocked_id FROM user_blocks WHERE blocker_id = ?`).bind(user.id).all()).results as any[];
+      const convRows = (await env.DB.prepare(`SELECT conv_id FROM conversation_members WHERE user_id = ?`).bind(user.id).all()).results as any[];
+      const conversations: any[] = [];
+      for (const cr of convRows) {
+        const convId: string = cr.conv_id;
+        const conv = (await env.DB.prepare(`SELECT id, kind, created_at, ephemeral_ttl FROM conversations WHERE id = ?`).bind(convId).first()) as any;
+        if (!conv) continue;
+        const members = await convMemberIds(env, convId);
+        const messages = (await env.DB.prepare(`SELECT * FROM messages WHERE conv_id = ? ORDER BY created_at`).bind(convId).all()).results;
+        conversations.push({ ...conv, members, messages });
+      }
+      return json({
+        exported_at: Date.now(),
+        profile: {
+          id: row?.id,
+          username: row?.username,
+          display_name: `${row?.first_name ?? ""} ${row?.last_name ?? ""}`.trim(),
+          avatar_url: row?.avatar_url ?? null,
+          phone: row?.phone ?? null,
+          privacy_settings: privacy,
+        },
+        blocks: blocks.map((b) => b.blocked_id),
+        conversations,
+      });
+    }
+
+    if (path === "/api/import" && req.method === "POST") {
+      let body: any;
+      try {
+        body = await req.json();
+      } catch {
+        return json({ error: "JSON invalide." }, 400);
+      }
+      if (typeof body !== "object" || body === null) return json({ error: "Format d'import invalide." }, 400);
+
+      let importedConvs = 0;
+      let importedMsgs = 0;
+      let importedBlocks = 0;
+      const now = Date.now();
+
+      const userConvIds = new Set<string>(
+        ((await env.DB.prepare(`SELECT conv_id FROM conversation_members WHERE user_id = ?`).bind(user.id).all()).results as any[]).map((r) => r.conv_id)
+      );
+
+      if (Array.isArray(body.conversations)) {
+        for (const c of body.conversations) {
+          if (!c || typeof c.id !== "string") continue;
+          await env.DB.prepare(
+            `INSERT OR IGNORE INTO conversations (id, kind, created_at, ephemeral_ttl) VALUES (?, ?, ?, ?)`
+          ).bind(
+            c.id,
+            c.kind ?? "dm",
+            Number(c.created_at ?? now),
+            Number(c.ephemeral_ttl ?? 0)
+          ).run();
+          importedConvs++;
+          await env.DB.prepare(
+            `INSERT OR IGNORE INTO conversation_members (conv_id, user_id, joined_at) VALUES (?, ?, ?)`
+          ).bind(c.id, user.id, now).run();
+          const memberIds = Array.isArray(c.members) ? c.members.filter((m: any) => typeof m === "string") : [];
+          for (const mid of memberIds) {
+            await env.DB.prepare(
+              `INSERT OR IGNORE INTO conversation_members (conv_id, user_id, joined_at) VALUES (?, ?, ?)`
+            ).bind(c.id, mid, now).run();
+          }
+          if (Array.isArray(c.messages)) {
+            for (const m of c.messages) {
+              if (!m || typeof m.id !== "string" || typeof m.conv_id !== "string") continue;
+              if (m.conv_id !== c.id) continue;
+              if (!userConvIds.has(m.conv_id) && m.conv_id !== c.id) continue;
+              await env.DB.prepare(
+                `INSERT OR REPLACE INTO messages (id, conv_id, sender_id, type, body, media_key, mime, duration_ms, reply_to_id, edited, deleted, pinned, status, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+              ).bind(
+                m.id,
+                m.conv_id,
+                m.sender_id ?? user.id,
+                m.type ?? "text",
+                m.body ?? null,
+                m.media_key ?? null,
+                m.mime ?? null,
+                m.duration_ms ?? null,
+                m.reply_to_id ?? null,
+                Number(m.edited ?? 0),
+                Number(m.deleted ?? 0),
+                Number(m.pinned ?? 0),
+                m.status ?? "sent",
+                Number(m.created_at ?? now),
+                m.expires_at ?? null
+              ).run();
+              importedMsgs++;
+            }
+          }
+          userConvIds.add(c.id);
+        }
+      }
+
+      if (Array.isArray(body.blocks)) {
+        for (const bid of body.blocks) {
+          if (typeof bid !== "string") continue;
+          await env.DB.prepare(
+            `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id, created_at) VALUES (?, ?, ?)`
+          ).bind(user.id, bid, now).run();
+          importedBlocks++;
+        }
+      }
+
+      if (body.profile && typeof body.profile === "object" && "privacy_settings" in body.profile) {
+        const ps = body.profile.privacy_settings;
+        const psStr = typeof ps === "string" ? ps : JSON.stringify(ps ?? {});
+        try { JSON.parse(psStr); } catch { return json({ error: "privacy_settings invalide." }, 400); }
+        await env.DB.prepare(`UPDATE users SET privacy_settings = ? WHERE id = ?`).bind(psStr, user.id).run();
+      }
+
+      return json({ ok: true, imported: { conversations: importedConvs, messages: importedMsgs, blocks: importedBlocks } });
+    }
+
+    if (path === "/api/sync/now" && req.method === "GET") {
+      const since = Number(url.searchParams.get("since") || 0) || 0;
+      const now = Date.now();
+      const convRows = (await env.DB.prepare(`SELECT conv_id FROM conversation_members WHERE user_id = ?`).bind(user.id).all()).results as any[];
+      const convIds: string[] = convRows.map((r) => r.conv_id);
+      let messages: any[] = [];
+      if (convIds.length) {
+        const placeholders = convIds.map(() => "?").join(",");
+        const rows = await env.DB.prepare(
+          `SELECT * FROM messages WHERE conv_id IN (${placeholders}) AND created_at > ? ORDER BY created_at`
+        ).bind(...convIds, since).all();
+        messages = rows.results as any[];
+      }
+      return json({ now, since, messages });
+    }
+
     return json({ error: "Not found" }, 404);
   },
 
