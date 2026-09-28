@@ -520,7 +520,7 @@
             android:layout_weight="1"
             android:minHeight="40dp"
             android:maxHeight="120dp"
-            android:hint="Message"
+            android:hint="@string/msg_hint"
             android:paddingStart="16dp"
             android:paddingEnd="44dp"
             android:paddingTop="10dp"

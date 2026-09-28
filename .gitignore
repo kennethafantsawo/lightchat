@@ -42,3 +42,6 @@ desktop.ini
 # ===== Signing release (local, secret) =====
 keystore.properties
 android/keystore.properties
+
+# ===== Outils locaux lourds (non versionnés) =====
+llama.cpp/

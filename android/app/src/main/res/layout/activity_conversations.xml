@@ -27,7 +27,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="LightChat"
+                android:text="@string/app_name"
                 android:textColor="@color/on_primary"
                 android:textSize="18sp"
                 android:textStyle="bold"
@@ -178,7 +178,7 @@
                 android:textStyle="bold"
                 android:fontFamily="sans-serif-medium"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:drawableTop="@drawable/ic_notif"
+                android:drawableTop="@drawable/ic_chats"
                 android:drawableTint="@color/primary"
                 android:paddingTop="2dp" />
 
@@ -193,7 +193,7 @@
                 android:textSize="12sp"
                 android:fontFamily="sans-serif"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:drawableTop="@drawable/ic_add"
+                android:drawableTop="@drawable/ic_friends"
                 android:drawableTint="@color/on_surface_variant"
                 android:paddingTop="2dp" />
 
@@ -208,7 +208,7 @@
                 android:textSize="12sp"
                 android:fontFamily="sans-serif"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:drawableTop="@drawable/ic_back"
+                android:drawableTop="@drawable/ic_search"
                 android:drawableTint="@color/on_surface_variant"
                 android:paddingTop="2dp" />
 
@@ -223,7 +223,7 @@
                 android:textSize="12sp"
                 android:fontFamily="sans-serif"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:drawableTop="@drawable/ic_emoji"
+                android:drawableTop="@drawable/ic_settings"
                 android:drawableTint="@color/on_surface_variant"
                 android:paddingTop="2dp" />
         </LinearLayout>
